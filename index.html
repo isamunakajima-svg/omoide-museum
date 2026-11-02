@@ -1613,4 +1613,210 @@ async function cutoutOne(img){
   for(let i=0;i<d.length;i+=16){ if(d[i+3]>200){ sum+=.299*d[i]+.587*d[i+1]+.114*d[i+2]; cnt++; } }
   return { canvas:c, box, lum: cnt? sum/cnt : 128 };
 }
-// 全部の写真で、物の高さ・
+// 全部の写真で、物の高さ・位置・明るさをそろえて正方形の PNG にする
+async function makeCutoutFrames(blobs, onProgress){
+  const cuts=[];
+  for(let i=0;i<blobs.length;i++){
+    onProgress && onProgress(i, blobs.length);
+    const url=URL.createObjectURL(blobs[i]);
+    try{ const img=await loadImage(url); const c=await cutoutOne(img); if(c) cuts.push(c); }
+    finally{ URL.revokeObjectURL(url); }
+  }
+  if(cuts.length<2) throw new Error('nocut');
+  const O=SPIN_OUT, targetH=O*.8, maxW=O*.94, bottom=O*.95;
+  // 高さをそろえる（向きが変わっても高さはほぼ同じなので、高さを基準にする）
+  let scales=cuts.map(c=>targetH/c.box.h);
+  let k=1; cuts.forEach((c,i)=>{ const w=c.box.w*scales[i]; if(w>maxW) k=Math.min(k,maxW/w); });
+  scales=scales.map(s=>s*k);
+  const lums=cuts.map(c=>c.lum).sort((a,b)=>a-b), medLum=lums[Math.floor(lums.length/2)];
+  const out=[];
+  for(let i=0;i<cuts.length;i++){
+    const c=cuts[i], s=scales[i];
+    const oc=document.createElement('canvas'); oc.width=oc.height=O; const ox=oc.getContext('2d',{willReadFrequently:true});
+    ox.imageSmoothingEnabled=true; ox.imageSmoothingQuality='high';
+    const cx=c.box.x+c.box.w/2, by=c.box.y+c.box.h;
+    ox.setTransform(s,0,0,s, O/2 - cx*s, bottom - by*s);
+    ox.drawImage(c.canvas,0,0);
+    ox.setTransform(1,0,0,1,0,0);
+    // 明るさをそろえる（写真ごとの明るさの差でチカチカしないように）
+    const g=Math.max(.8, Math.min(1.25, medLum/(c.lum||1)));
+    if(Math.abs(g-1)>.02){ const id=ox.getImageData(0,0,O,O), d=id.data; for(let j=0;j<d.length;j+=4){ if(!d[j+3]) continue; d[j]=Math.min(255,d[j]*g); d[j+1]=Math.min(255,d[j+1]*g); d[j+2]=Math.min(255,d[j+2]*g); } ox.putImageData(id,0,0); }
+    out.push(await new Promise(res=>oc.toBlob(res,'image/png')));
+  }
+  onProgress && onProgress(blobs.length, blobs.length);
+  return out;
+}
+
+/* ---------------- 作品を飾る（まず端末に保存→ドライブへ送信） ---------------- */
+let pending=null;
+$('addPhoto').onclick=()=>{ $('filePhoto').value=''; $('filePhoto').click(); };
+$('add3d').onclick=()=>show('menu3d');
+$('menu3dCancel').onclick=()=>show('menu3d',false);
+$('chooseGlb').onclick=()=>{ show('menu3d',false); $('file3d').value=''; $('file3d').click(); };
+$('chooseSpin').onclick=()=>{ show('menu3d',false); openCam(); };
+
+$('filePhoto').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  let blob=null; try{ blob=await shrinkImage(f,1600); }catch(err){}
+  if(!blob){ toast('この画像は読み込めませんでした'); return; }
+  pending={type:'photo', blob, urls:[URL.createObjectURL(blob)]};
+  const pv=$('addPreview'); pv.innerHTML=''; const img=document.createElement('img'); img.src=pending.urls[0]; pv.appendChild(img);
+  openAdd('写真・絵を飾る','例：はじめて描いた家族の絵');
+};
+$('file3d').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(f.size>30*1048576){ toast('ファイルが大きすぎます（30MBまで）',3600); return; }
+  const buf=await f.arrayBuffer();
+  try{ await parseGLB(buf.slice(0)); }
+  catch(err){ toast('このファイルは読み込めませんでした（.glb 形式に対応しています）',3600); return; }
+  pending={type:'model', blob:new Blob([buf],{type:'model/gltf-binary'}), urls:[]};
+  $('addPreview').innerHTML=`<div class="file3d">🧊 ${esc(f.name)}<br>（${(f.size/1048576).toFixed(1)} MB）</div>`;
+  openAdd('3D作品を置く','例：ダンボールのロボット');
+};
+function openAdd(title, ph){ $('spinOpts').style.display='none'; $('inAuthor').value=lsGet('omoide.lastAuthor')||''; drawAuthorChips('authorChips','inAuthor'); $('addTitle').textContent=title; $('inTitle').value=''; $('inTitle').placeholder=ph; $('inDate').value=today(); $('inMemo').value=''; show('addSheet'); }
+function closeAdd(){ show('addSheet',false); closeSpinView(); if(pending&&pending.urls) pending.urls.forEach(u=>URL.revokeObjectURL(u)); pending=null; }
+$('addCancel').onclick=closeAdd;
+$('addSave').onclick=async()=>{
+  if(!pending) return;
+  const p=pending; pending=null;
+  show('addSheet',false); closeSpinView(); (p.urls||[]).forEach(u=>URL.revokeObjectURL(u));
+  const author=$('inAuthor').value.trim(); rememberAuthor(author);
+  const item={ id:uid(), type:p.type, title:$('inTitle').value.trim(), author, date:$('inDate').value, memo:$('inMemo').value.trim(), created:Date.now(), local:true };
+  if(p.type==='spin'){ item.blobs=p.blobs; item.cutout=!!(p.useCut && p.cut); item.spinDir=p.dir||1; } else item.blob=p.blob;
+  await outboxPut(item);
+  pendingItems.push(item);
+  await render(); visit(item.id);
+  toast(p.type==='photo' ? '壁に飾りました' : '台の上に飾りました');
+  sync();
+};
+
+/* ---------------- くるっと写真カメラ ---------------- */
+const MAX_FRAMES=16, MIN_FRAMES=4, SPIN_SIZE=900;
+let camStream=null, shots=[];
+async function openCam(){
+  shots=[]; drawShots();
+  $('cam').classList.add('show');
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    const v=$('camVideo'); v.srcObject=camStream; await v.play().catch(()=>{});
+  }catch(e){
+    closeCam();
+    toast('カメラを使えなかったので、アルバムから選んでください',3600);
+    $('fileSpin').value=''; $('fileSpin').click();
+  }
+}
+function closeCam(){ if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; } $('camVideo').srcObject=null; $('cam').classList.remove('show'); }
+function drawShots(){
+  $('camCount').textContent=`${shots.length} 枚`+(shots.length<8?'（あと少し）':'');
+  $('camDone').disabled = shots.length<MIN_FRAMES;
+  const box=$('camThumbs'); box.innerHTML='';
+  shots.forEach(s=>{ const i=document.createElement('img'); i.src=s.url; box.appendChild(i); });
+  box.scrollLeft=box.scrollWidth;
+  const g=$('camGhost'); if(shots.length){ g.src=shots[shots.length-1].url; g.style.display=''; } else g.style.display='none';
+}
+$('camShutter').onclick=async()=>{
+  const v=$('camVideo'); if(!v.videoWidth) return;
+  if(shots.length>=MAX_FRAMES){ toast(`${MAX_FRAMES}枚までです`); return; }
+  const stage=$('camStage'), sw=stage.clientWidth, sh=stage.clientHeight;
+  const vr=v.videoWidth/v.videoHeight, sr=sw/sh;
+  let cw=v.videoWidth, ch=v.videoHeight, cx=0, cy=0;
+  if(vr>sr){ cw=v.videoHeight*sr; cx=(v.videoWidth-cw)/2; } else { ch=v.videoWidth/sr; cy=(v.videoHeight-ch)/2; }
+  const tmp=document.createElement('canvas'); tmp.width=Math.round(cw); tmp.height=Math.round(ch);
+  tmp.getContext('2d').drawImage(v,cx,cy,cw,ch,0,0,tmp.width,tmp.height);
+  const blob=await drawScaled(tmp,tmp.width,tmp.height,SPIN_SIZE);
+  shots.push({blob,url:URL.createObjectURL(blob)});
+  const fl=$('flash'); fl.style.transition='none'; fl.style.opacity=.7; requestAnimationFrame(()=>{ fl.style.transition='opacity .25s'; fl.style.opacity=0; });
+  drawShots();
+};
+$('camClose').onclick=()=>{ shots.forEach(s=>URL.revokeObjectURL(s.url)); shots=[]; closeCam(); };
+$('camAlbum').onclick=()=>{ $('fileSpin').value=''; $('fileSpin').click(); };
+$('camDone').onclick=()=>{ const s=shots; shots=[]; closeCam(); startSpinAdd(s); };
+$('fileSpin').onchange=async e=>{
+  const files=[...e.target.files].sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name)).slice(0,MAX_FRAMES);
+  if(!files.length) return;
+  const list=[];
+  for(const f of files){ try{ const b=await shrinkImage(f,SPIN_SIZE); if(b) list.push({blob:b,url:URL.createObjectURL(b)}); }catch(err){} }
+  if($('cam').classList.contains('show')){ shots=shots.concat(list).slice(0,MAX_FRAMES); drawShots(); return; }
+  if(list.length<2){ toast('2枚以上選んでください'); return; }
+  startSpinAdd(list);
+};
+async function startSpinAdd(list){
+  if(list.length<2){ toast('写真が足りません'); return; }
+  const raw=list.map(x=>x.blob); list.forEach(x=>URL.revokeObjectURL(x.url));
+  pending={type:'spin', raw, cut:null, useCut:true, dir:1, blobs:raw, urls:[]};
+  busy(true,'切り抜きの準備をしています…（初回は少し時間がかかります）');
+  try{
+    await getSeg();
+    pending.cut=await makeCutoutFrames(raw,(i,n)=>busy(true, i<n ? `背景を切り抜いています（${i+1}/${n}）` : '大きさと明るさをそろえています…'));
+  }catch(e){
+    console.warn(e); pending.useCut=false;
+    toast(String(e&&e.message)==='nocut' ? '作品をうまく見つけられなかったので、写真のまま飾ります' : '切り抜きができなかったので、写真のまま飾ります', 4000);
+  }finally{ busy(false); }
+  openAdd(`くるっと写真を飾る（${raw.length}枚）`,'例：紙ねんどの恐竜');
+  $('spinOpts').style.display='flex';
+  $('optCut').style.display = pending.cut ? '' : 'none';
+  refreshSpinPreview();
+}
+function refreshSpinPreview(){
+  const p=pending; if(!p || p.type!=='spin') return;
+  closeSpinView(); (p.urls||[]).forEach(u=>URL.revokeObjectURL(u));
+  p.blobs = (p.useCut && p.cut) ? p.cut : p.raw;
+  p.urls = p.blobs.map(b=>URL.createObjectURL(b));
+  const pv=$('addPreview'); pv.innerHTML='';
+  spinView=makeSpinViewer(pv, p.urls, {dir:p.dir, cut:!!(p.useCut && p.cut)});
+  $('optCut').classList.toggle('on', !!p.useCut); $('optDir').classList.toggle('on', p.dir<0);
+}
+$('optCut').onclick=()=>{ if(!pending) return; pending.useCut=!pending.useCut; refreshSpinPreview(); };
+$('optDir').onclick=()=>{ if(!pending) return; pending.dir=-pending.dir; if(spinView) spinView.dir=pending.dir; $('optDir').classList.toggle('on', pending.dir<0); };
+
+/* ---------------- 起動 ---------------- */
+(async()=>{
+  try{ await document.fonts.ready; }catch(e){}
+  await openDB();
+  const result = handleRedirect();
+  if(viewOnly){
+    // 見るだけリンク：ログインなしで、共有された部屋を表示
+    loadRoomCache();
+    await render(true); resetView();
+    $('loading').classList.add('hide'); loop();
+    if(!viewItems.length) busy(true,'美術館を読み込んでいます…');
+    try{ await refreshRoom(); await render(); if(!viewItems.length && !viewName) toast('この美術館は見つかりませんでした（共有が終わった可能性があります）',5000); }
+    catch(e){ toast(String(e.message)==='network'?'オフラインのため、前回の内容を表示しています':'読み込めませんでした',4000); }
+    finally{ busy(false); }
+    return;
+  }
+  if(auth.signedIn){
+    loadLocalIndex();
+    pendingItems = await outboxAll();
+    if(myShare()) loadRoomCache();
+    if(!myShare()) mode='mine';
+  }
+  await render(true); resetView();
+  $('loading').classList.add('hide');
+  loop();
+
+  if(result==='denied'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='ログインがキャンセルされました。'; return; }
+  if(result==='scope'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='「Googleドライブのファイルの作成・編集」にチェックを入れて、もう一度ログインしてください。'; return; }
+  if(!auth.signedIn){
+    show('welcomeSheet'); if(isInApp) show('inappSheet');
+    if(lsGet('omoide.pendingJoin')){ $('loginErr').style.display='block'; $('loginErr').classList.remove('err'); $('loginErr').textContent='家族の美術館に招待されています。Googleでログインすると参加できます。'; }
+    return;
+  }
+
+  if(!auth.valid){
+    // 1時間でログインの鍵が切れるので、自動でつなぎ直す（画面は一瞬切り替わります）
+    let tried=0; try{ tried=Number(sessionStorage.getItem('omoide.silentAt')||0); }catch(e){}
+    if(result!=='silent-failed' && Date.now()-tried>60000 && navigator.onLine && !isInApp){
+      try{ sessionStorage.setItem('omoide.silentAt', String(Date.now())); }catch(e){}
+      startLogin(true); return;
+    }
+    needAuth(); return;
+  }
+  await sync();
+  const pj=lsGet('omoide.pendingJoin');
+  if(pj){ lsSet('omoide.pendingJoin',null); await handleJoin(pj); }
+  else if(result==='ok' && !remote.name && lsGet('omoide.nameAsked')!=='1') openName();
+})();
+</script>
+</body>
+</html>
