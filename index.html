@@ -137,6 +137,8 @@
   .sharebox .row{margin-top:0}
   .btn.line{background:#06c755;color:#fff}
   .btn.sm{font-size:13.5px;padding:10px 12px;border-radius:12px;box-shadow:none}
+  .authors{margin:0 0 8px}
+  .authors .chip{padding:6px 12px}
   input[type=file]{display:none}
 </style>
 <script type="importmap">
@@ -158,7 +160,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
 </header>
-<div class="modebar" id="modeBar"><button id="modeMine" class="on">わたしの美術館</button><button id="modeFamily">家族の部屋</button></div>
+<div class="modebar" id="modeBar"><button id="modeMine" class="on">わたしの部屋</button><button id="modeFamily">家族の美術館</button></div>
 <div id="syncPill"><span class="spin"></span><span id="syncText">ドライブに保存中…</span></div>
 <div id="hint">ドラッグで見回す ・ 2本指でズーム ・ 床をタップで移動</div>
 
@@ -180,7 +182,7 @@
 <div class="overlay" id="welcomeSheet">
   <div class="sheet">
     <h2>おもいで美術館へようこそ</h2>
-    <p class="lead">手放す前の思い出の品や、お子さんの絵・工作を写真に残して、あなただけの美術館に飾れます。</p>
+    <p class="lead">手放す前の思い出の品や、お子さんの絵・工作を写真に残して、あなたの部屋に飾ったり、家族の美術館でみんなと共有したりできます。</p>
     <ul class="points">
       <li><span>📷</span><span>スマホで撮るだけ。工作は一周撮ると、くるっと回して見られます。</span></li>
       <li><span>🔒</span><span>作品は<b>あなたのGoogleドライブ</b>だけに保存されます。アプリの提供者には見えません。</span></li>
@@ -208,7 +210,7 @@
 <!-- 美術館の名前 -->
 <div class="overlay top" id="nameSheet">
   <div class="sheet">
-    <h2>美術館に名前をつけましょう</h2>
+    <h2>部屋に名前をつけましょう</h2>
     <label for="inName">名前（入口の看板になります）</label>
     <input type="text" id="inName" placeholder="例：山田家" maxlength="20">
     <div class="meta" id="namePreview"></div>
@@ -221,8 +223,8 @@
   <div class="sheet">
     <h2>メニュー</h2>
     <div class="meta" id="menuAccount"></div>
-    <button class="choice" id="menuFamily"><span class="ic">👪</span><div><b>家族の部屋・親戚に見せる</b><span id="menuFamilySub">家族みんなで作品を飾れる部屋をつくります。</span></div></button>
-    <button class="choice" id="menuRename"><span class="ic">🏷️</span><div><b>美術館の名前を変える</b><span id="menuNameNow"></span></div></button>
+    <button class="choice" id="menuFamily"><span class="ic">👪</span><div><b>家族の美術館・親戚に見せる</b><span id="menuFamilySub">家族みんなで作品を飾れる美術館をつくります。</span></div></button>
+    <button class="choice" id="menuRename"><span class="ic">🏷️</span><div><b>部屋の名前を変える</b><span id="menuNameNow"></span></div></button>
     <a class="choice" id="menuDrive" target="_blank" rel="noopener"><span class="ic">📁</span><div><b>Googleドライブで見る</b><span>保存された写真のファイルを直接見られます。</span></div></a>
     <button class="choice" id="menuHome"><span class="ic">📲</span><div><b>ホーム画面に追加する方法</b><span>アプリのように、すぐ開けるようになります。</span></div></button>
     <button class="choice" id="menuLogout"><span class="ic">🚪</span><div><b>ログアウト</b><span>この端末から美術館のデータを消します（ドライブの作品は消えません）。</span></div></button>
@@ -258,21 +260,24 @@
     <div class="opts" id="spinOpts" style="display:none"><button class="chip on" id="optCut">✂️ 背景を切り抜く</button><button class="chip" id="optDir">🔄 回る向きを反転</button></div>
     <label for="inTitle">タイトル</label>
     <input type="text" id="inTitle" placeholder="例：はじめて描いた家族の絵" maxlength="30">
+    <label for="inAuthor">作者（だれの作品？）</label>
+    <div class="opts authors" id="authorChips"></div>
+    <input type="text" id="inAuthor" placeholder="例：はると（新しい人は入力）" maxlength="12">
     <label for="inDate">いつの思い出？</label>
     <input type="date" id="inDate">
     <label for="inMemo">思い出メモ（なくてもOK）</label>
     <textarea id="inMemo" maxlength="300" placeholder="例：年長の夏に作ったロボット。手放す前に写真に残しました。"></textarea>
     <div class="row">
       <button class="btn ghost" id="addCancel">やめる</button>
-      <button class="btn primary" id="addSave">美術館に飾る</button>
+      <button class="btn primary" id="addSave">飾る</button>
     </div>
   </div>
 </div>
 
-<!-- 家族の部屋 -->
+<!-- 家族の美術館 -->
 <div class="overlay" id="familySheet">
   <div class="sheet">
-    <h2 id="familyTitle">家族の部屋</h2>
+    <h2 id="familyTitle">家族の美術館</h2>
     <div id="familyBody"></div>
     <button class="link" id="familyClose">閉じる</button>
   </div>
@@ -281,16 +286,16 @@
 <!-- 招待されたとき -->
 <div class="overlay top" id="joinSheet">
   <div class="sheet">
-    <h2>家族の部屋への招待</h2>
+    <h2>家族の美術館への招待</h2>
     <p class="lead" id="joinLead"></p>
     <div id="joinForm">
-      <label for="inJoinName">部屋での表示名</label>
+      <label for="inJoinName">あなたの呼び名（登録した人として表示）</label>
       <input type="text" id="inJoinName" placeholder="例：ママ、おばあちゃん" maxlength="12">
-      <div class="note">参加すると、あなたが飾った作品も家族の部屋に並びます（作品ごとに「飾らない」にもできます）。共有した作品は、リンクを知っている家族や親戚が見られるようになります。</div>
+      <div class="note">参加すると、あなたが飾った作品も家族の美術館に並びます（作品ごとに「飾らない」にもできます）。共有した作品は、リンクを知っている家族や親戚が見られるようになります。</div>
       <div class="row"><button class="btn ghost" id="joinCancel">あとで</button><button class="btn primary" id="joinGo">参加する</button></div>
     </div>
     <div id="joinDone" style="display:none">
-      <div class="note">参加しました！最後に、<b>参加したことを家族に知らせてください</b>。このお知らせを家族が開くと、あなたの作品が家族のスマホの部屋にも並ぶようになります。</div>
+      <div class="note">参加しました！最後に、<b>参加したことを家族に知らせてください</b>。このお知らせを家族が開くと、あなたの作品が家族のスマホの美術館にも並ぶようになります。</div>
       <div class="row"><a class="btn line" id="joinNotify" target="_blank" rel="noopener">LINEで参加を知らせる</a></div>
       <div class="row"><button class="btn ghost" id="joinCopy">お知らせのリンクをコピー</button></div>
       <button class="link" id="joinClose">閉じる</button>
@@ -304,7 +309,7 @@
     <h2 id="viewInfoTitle">見るだけの美術館</h2>
     <p class="lead">ご家族から共有された美術館です。ログインしなくても見られます。<br>作品をタップすると、大きく見たり、くるっと回したりできます。</p>
     <div class="row"><button class="btn primary" id="viewInfoOk">見る</button></div>
-    <button class="link" id="viewInfoMine">自分の美術館をつくる</button>
+    <button class="link" id="viewInfoMine">自分の部屋をつくる</button>
   </div>
 </div>
 
@@ -323,15 +328,19 @@
   <div class="sheet">
     <div class="preview" id="viewPreview"></div>
     <div class="opts" id="vSpinOpts" style="display:none"><button class="chip" id="vDir">🔄 回る向きを反転</button></div>
-    <div class="opts" id="vShareOpts" style="display:none"><button class="chip on" id="vShare">👪 家族の部屋に飾る</button></div>
+    <div class="opts" id="vShareOpts" style="display:none"><button class="chip on" id="vShare">👪 家族の美術館に飾る</button></div>
     <label for="vTitle">タイトル</label>
     <input type="text" id="vTitle" maxlength="30">
+    <label for="vAuthor">作者</label>
+    <div class="opts authors" id="vAuthorChips"></div>
+    <input type="text" id="vAuthor" maxlength="12" placeholder="作者の名前">
     <label for="vDate">いつの思い出？</label>
     <input type="date" id="vDate">
     <label for="vMemo">思い出メモ</label>
     <textarea id="vMemo" maxlength="300" placeholder="思い出を書きとめておけます"></textarea>
     <div class="meta" id="vMeta"></div>
-    <button class="choice" id="vGo" style="display:none"><span class="ic">🚶</span><div><b>美術館で見に行く</b><span>この作品の前まで歩いていきます。</span></div></button>
+    <div class="meta" id="vOwner"></div>
+    <button class="choice" id="vGo" style="display:none"><span class="ic">🚶</span><div><b>見に行く</b><span>この作品の前まで歩いていきます。</span></div></button>
     <div class="note" id="vNote" style="display:none"></div>
     <div class="row">
       <button class="btn danger" id="vDelete">しまう（削除）</button>
@@ -369,7 +378,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    設定（README.md の手順で取得した値を入れてください）
    ====================================================== */
 const GOOGLE_CLIENT_ID = '354587476794-j4lfhu2kd5p79ktivjv3b3mntkmdeg7h.apps.googleusercontent.com';            // 例：1234-abcd.apps.googleusercontent.com
-const GOOGLE_API_KEY = 'AIzaSyBouewQlOzmySBUqPl09iCx1tdggB3-TBE';               // 家族の部屋・見るだけリンク用のAPIキー（README 参照）
+const GOOGLE_API_KEY = 'AIzaSyBouewQlOzmySBUqPl09iCx1tdggB3-TBE';               // 家族の美術館・見るだけリンク用のAPIキー（README 参照）
 const BRAND = '';                       // 入口の看板に小さく出す名前（例：整理収納アドバイザー ○○）
 
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
@@ -518,14 +527,14 @@ const drive = {
   reset(){ this.folderId=null; this.indexId=null; lsSet('omoide.folder',null); lsSet('omoide.index',null); }
 };
 
-/* ---------------- 家族の部屋：公開データの読み書き ---------------- */
+/* ---------------- 家族の美術館：公開データの読み書き ---------------- */
 const fileIdsOf = it => it.type==='spin' ? (it.fileIds||[]) : [it.fileId].filter(Boolean);
 // 家族や親戚が読む「公開データ」（共有している作品だけ）
 function buildPublic(d){
   const sh=d.share;
   return { kind:'omoide-public', version:1, name:sh.name||'', museum:d.name||'',
     room:{ name:sh.roomName||'', members:(sh.members||[]).filter(x=>x!==sh.publicId) },
-    items:d.items.filter(it=>it.shared!==false).map(it=>({ id:it.id, type:it.type, title:it.title||'', date:it.date||'', memo:it.memo||'', created:it.created,
+    items:d.items.filter(it=>it.shared!==false).map(it=>({ id:it.id, type:it.type, title:it.title||'', author:it.author||'', date:it.date||'', memo:it.memo||'', created:it.created,
       fileId:it.fileId, fileIds:it.fileIds, cutout:it.cutout, spinDir:it.spinDir })) };
 }
 // ログインなしで読む（APIキー）
@@ -642,9 +651,9 @@ function sampleRobot(){
   return g;
 }
 const SAMPLES = [
-  { id:'sample-1', type:'photo', title:'かぞくの絵', date:'2019-05-12', sample:true, canvas:sampleFamily, memo:'年中のときに描いた家族の絵。' },
+  { id:'sample-1', type:'photo', title:'かぞくの絵', author:'はると', date:'2019-05-12', sample:true, canvas:sampleFamily, memo:'年中のときに描いた家族の絵。' },
   { id:'sample-2', type:'photo', title:'ひまわり', date:'2020-08-03', sample:true, canvas:sampleFlower },
-  { id:'sample-3', type:'model', title:'ダンボールロボ', date:'2021-02-20', sample:true, build:sampleRobot, memo:'大きすぎて置き場所に困っていたけど、ここならずっと飾れる。' },
+  { id:'sample-3', type:'model', title:'ダンボールロボ', author:'はると', date:'2021-02-20', sample:true, build:sampleRobot, memo:'大きすぎて置き場所に困っていたけど、ここならずっと飾れる。' },
 ];
 
 /* ---------------- 3D シーン ---------------- */
@@ -756,7 +765,7 @@ function textTexture(lines, w=512, h=160, opts={}){
 }
 function plaqueFor(item, w=.46, h=.144){
   const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({toneMapped:false,
-    map:textTexture([{text:item.title||'無題',size:44,y:70,bold:true},{text:(item.ownerName?item.ownerName+'・':'')+fmtDate(item.date),size:30,y:122,color:'#8a7d70'}])}));
+    map:textTexture([{text:item.title||'無題',size:44,y:70,bold:true},{text:(item.author?'作：'+item.author+'　':'')+fmtDate(item.date),size:30,y:122,color:'#8a7d70'}])}));
   m.userData.ownMat=true; m.material.userData.ownMap=true; return m;
 }
 function disposeGroup(g){
@@ -801,7 +810,8 @@ function buildRoom(){
   // 観葉植物
   [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>roomGroup.add(plant(sx*(W/2-.6), sz*(L/2-.6))));
   // 奥に立てる看板
-  const title = museumName ? `${museumName}の おもいで美術館` : 'おもいで美術館';
+  const personal = !viewOnly && auth.signedIn && !familyMode();
+  const title = personal ? (museumName ? `${museumName}の おもいで部屋` : 'わたしの おもいで部屋') : (museumName ? `${museumName}の おもいで美術館` : 'おもいで美術館');
   const lines=[{text:title,size:museumName?70:84,y:BRAND?100:118,bold:true}];
   if(BRAND) lines.push({text:BRAND,size:34,y:180,color:'#9a8571'});
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.6), new THREE.MeshBasicMaterial({map:textTexture(lines,1260,290,{bg:'#fbf8f3',noBorder:true,color:'#7a5a3e'}),toneMapped:false}));
@@ -1027,7 +1037,7 @@ function loop(){
 let remote = { name:'', items:[] };
 let pendingItems = [];
 let lastSig='';
-let roomItems = [], roomMembers = [], roomName = '';     // 家族の部屋（他の人の作品）
+let roomItems = [], roomMembers = [], roomName = '';     // 家族の美術館（他の人の作品）
 let viewItems = [], viewName = '';                      // 見るだけモード
 const myShare = () => (remote.share && remote.share.enabled) ? remote.share : null;
 function loadRoomCache(){ try{ const a=JSON.parse(lsGet(viewOnly?'omoide.view.'+viewId:'omoide.room')||'null'); if(Array.isArray(a)) applyRoom(new Map(a)); }catch(e){} }
@@ -1064,7 +1074,7 @@ async function render(force=false){
   museumName = viewOnly ? viewName : (familyMode() ? (roomName||myShare().roomName||'') : (remote.name || ''));
   setHeader();
   const list=allItems();
-  const s=JSON.stringify([museumName, mode, list.map(i=>[i.id,i.title,i.date,!!i.local,i.ownerName||''])]);
+  const s=JSON.stringify([museumName, mode, list.map(i=>[i.id,i.title,i.author||'',i.date,!!i.local,i.ownerName||''])]);
   if(!force && s===lastSig) return;
   lastSig=s;
   const loadingMany = list.filter(i=>!i.sample && !loadedCache.has(i.id)).length;
@@ -1076,8 +1086,8 @@ async function render(force=false){
 }
 function setHeader(){
   if(viewOnly) $('museumName').textContent = museumName ? `${museumName}の美術館` : 'おもいで美術館';
-  else if(familyMode()) $('museumName').textContent = museumName ? `${museumName}の部屋` : '家族の部屋';
-  else $('museumName').textContent = auth.signedIn && museumName ? `${museumName}の美術館` : 'おもいで美術館';
+  else if(familyMode()) $('museumName').textContent = museumName ? `${museumName}の美術館` : '家族の美術館';
+  else $('museumName').textContent = auth.signedIn ? (museumName ? `${museumName}の部屋` : 'わたしの部屋') : 'おもいで美術館';
   $('bar').classList.toggle('hidden', viewOnly || !auth.signedIn);
   const showMode = !viewOnly && auth.signedIn && !!myShare();
   $('modeBar').classList.toggle('show', showMode); document.body.classList.toggle('has-mode', showMode);
@@ -1118,7 +1128,7 @@ async function doSync(){
           ids.push(f.id); cachePut(f.id, blobs[i]);
           if(share) await drive.setPublic(f.id, true);
         }
-        const item={ id:p.id, type:p.type, title:p.title, date:p.date, memo:p.memo||'', created:p.created };
+        const item={ id:p.id, type:p.type, title:p.title, author:p.author||'', date:p.date, memo:p.memo||'', created:p.created };
         if(p.shared===false) item.shared=false;
         if(p.type==='spin'){ item.fileIds=ids; item.cutout=!!p.cutout; item.spinDir=p.spinDir||1; } else item.fileId=ids[0];
         remote = await drive.mutate(d=>{ d.items=d.items.filter(x=>x.id!==item.id); d.items.push(item); });
@@ -1146,7 +1156,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && auth.
 function openName(){
   $('inName').value=remote.name||''; updateNamePreview(); show('nameSheet'); setTimeout(()=>$('inName').focus(),100);
 }
-function updateNamePreview(){ const v=$('inName').value.trim(); $('namePreview').textContent = v ? `入口の看板：「${v}の おもいで美術館」` : ''; }
+function updateNamePreview(){ const v=$('inName').value.trim(); $('namePreview').textContent = v ? `入口の看板：「${v}の おもいで部屋」` : ''; }
 $('inName').oninput=updateNamePreview;
 $('nameSkip').onclick=()=>{ show('nameSheet',false); lsSet('omoide.nameAsked','1'); };
 $('nameGo').onclick=async()=>{
@@ -1161,7 +1171,7 @@ $('nameGo').onclick=async()=>{
 $('openMenu').onclick=()=>{
   if(viewOnly){ show('viewInfoSheet'); return; }
   if(!auth.signedIn){ show('welcomeSheet'); return; }
-  $('menuFamilySub').textContent = myShare() ? `「${myShare().roomName||'家族'}」の部屋：家族を招待する・親戚に見せる` : '家族みんなで作品を飾れる部屋をつくります。';
+  $('menuFamilySub').textContent = myShare() ? `「${myShare().roomName||'家族'}」の美術館：家族を招待する・親戚に見せる` : '家族みんなで作品を飾れる美術館をつくります。';
   $('menuAccount').textContent = auth.email ? `${auth.email} のGoogleドライブに保存しています` : 'Googleドライブに保存しています';
   $('menuNameNow').textContent = remote.name ? `いまの名前：${remote.name}` : 'まだ名前がありません';
   const md=$('menuDrive'); if(drive.folderId){ md.style.display=''; md.href=`https://drive.google.com/drive/folders/${drive.folderId}`; } else md.style.display='none';
@@ -1244,18 +1254,20 @@ function closeSpinView(){ if(spinView){ spinView.stop(); spinView=null; } }
 async function openViewer(item){
   current=item; const pv=$('viewPreview'); pv.innerHTML=''; closeMini(); closeSpinView();
   const note=$('vNote'); note.style.display='none';
-  $('vTitle').value=item.title||''; $('vMemo').value=item.memo||''; $('vDate').value=item.date||'';
+  $('vTitle').value=item.title||''; $('vMemo').value=item.memo||''; $('vDate').value=item.date||''; $('vAuthor').value=item.author||'';
   const readOnly = !!item.sample || !!item.pub;
-  $('vTitle').disabled=$('vMemo').disabled=$('vDate').disabled=readOnly;
+  $('vTitle').disabled=$('vMemo').disabled=$('vDate').disabled=$('vAuthor').disabled=readOnly;
+  if(readOnly){ $('vAuthorChips').style.display='none'; } else drawAuthorChips('vAuthorChips','vAuthor');
+  $('vOwner').textContent = item.ownerName ? `登録した人：${item.ownerName}` : '';
   $('vGo').style.display = $('listSheet').classList.contains('show') ? '' : 'none';
   const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : '';
   $('vMeta').textContent=hint.replace(/^　・　/,'');
   if(item.sample){ note.style.display='block'; note.textContent='これは見本の作品です。ログインすると、あなたの作品を飾れます。'; }
-  else if(item.pub){ note.style.display='block'; note.textContent=`${item.ownerName||'家族'}さんの作品です（見るだけ）。`; }
+  else if(item.pub){ note.style.display='block'; note.textContent=`${item.ownerName||'家族'}さんが登録した作品です（見るだけ）。`; }
   else if(item.local){ note.style.display='block'; note.textContent='まだドライブに保存されていません。電波のあるところで開くと自動で保存されます。'; }
   $('vSpinOpts').style.display = (item.type==='spin' && !readOnly) ? 'flex' : 'none';
   $('vShareOpts').style.display = (!readOnly && myShare()) ? 'flex' : 'none';
-  $('vShare').classList.toggle('on', item.shared!==false); $('vShare').textContent = item.shared!==false ? '👪 家族の部屋に飾っています' : '🔒 家族の部屋には飾っていません';
+  $('vShare').classList.toggle('on', item.shared!==false); $('vShare').textContent = item.shared!==false ? '👪 家族の美術館に飾っています' : '🔒 家族の美術館には飾っていません';
   $('vDir').classList.toggle('on', (item.spinDir||1)<0);
   $('vDelete').style.display=readOnly?'none':'';
   $('vDelete').classList.remove('armed'); $('vDelete').textContent='しまう（削除）';
@@ -1274,12 +1286,13 @@ async function closeViewer(){
   show('viewSheet',false); closeMini(); closeSpinView();
   const item=latest(current); current=null;
   if(!item || item.sample || item.pub) return;
-  const nt=$('vTitle').value.trim(), nm=$('vMemo').value.trim(), nd=$('vDate').value;
-  if(nt===(item.title||'') && nm===(item.memo||'') && nd===(item.date||'')) return;
-  if(item.local){ const p=await outboxAll(); const o=p.find(x=>x.id===item.id); if(o){ o.title=nt; o.memo=nm; o.date=nd; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } await render(); return; }
+  const nt=$('vTitle').value.trim(), nm=$('vMemo').value.trim(), nd=$('vDate').value, na=$('vAuthor').value.trim();
+  if(nt===(item.title||'') && nm===(item.memo||'') && nd===(item.date||'') && na===(item.author||'')) return;
+  if(na!==(item.author||'')) rememberAuthor(na);
+  if(item.local){ const p=await outboxAll(); const o=p.find(x=>x.id===item.id); if(o){ o.title=nt; o.memo=nm; o.date=nd; o.author=na; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } await render(); return; }
   if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
   try{
-    remote = await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ it.title=nt; it.memo=nm; it.date=nd; } });
+    remote = await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ it.title=nt; it.memo=nm; it.date=nd; it.author=na; } });
     saveLocalIndex(); await render(true);
   }catch(e){ if(e instanceof AuthError) needAuth(); toast('保存できませんでした'); }
 }
@@ -1289,10 +1302,10 @@ $('vGo').onclick=async()=>{ const it=current; await closeViewer(); show('listShe
 $('vShare').onclick=async()=>{
   const item=latest(current); if(!item || item.sample || item.pub || !myShare()) return; current=item;
   const on = item.shared===false;   // 切り替え後
-  const setChip=v=>{ $('vShare').classList.toggle('on', v); $('vShare').textContent = v ? '👪 家族の部屋に飾っています' : '🔒 家族の部屋には飾っていません'; };
+  const setChip=v=>{ $('vShare').classList.toggle('on', v); $('vShare').textContent = v ? '👪 家族の美術館に飾っています' : '🔒 家族の美術館には飾っていません'; };
   if(item.local){ const o=(await outboxAll()).find(x=>x.id===item.id); if(o){ o.shared=on; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } item.shared=on; setChip(on); await render(true); return; }
   if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
-  busy(true, on ? '家族の部屋に飾っています…' : '家族の部屋から外しています…');
+  busy(true, on ? '家族の美術館に飾っています…' : '家族の美術館から外しています…');
   try{
     for(const fid of fileIdsOf(item)) await drive.setPublic(fid, on);
     remote=await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ if(on) delete it.shared; else it.shared=false; } });
@@ -1327,13 +1340,13 @@ $('vDelete').onclick=async()=>{
   finally{ busy(false); }
 };
 
-/* ---------------- 家族の部屋 ---------------- */
+/* ---------------- 家族の美術館 ---------------- */
 function lineHref(text){ return 'https://line.me/R/msg/text/?'+encodeURIComponent(text); }
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); toast('コピーしました'); }catch(e){ toast('コピーできませんでした'); } }
 async function setMode(m){
   mode = (m==='family' && myShare()) ? 'family' : 'mine'; lsSet('omoide.mode', mode);
   setHeader();
-  if(mode==='family' && auth.valid){ busy(true,'家族の部屋を読み込んでいます…'); try{ await refreshRoom(); }catch(e){ toast('家族の部屋を読み込めませんでした'); } finally{ busy(false); } }
+  if(mode==='family' && auth.valid){ busy(true,'家族の美術館を読み込んでいます…'); try{ await refreshRoom(); }catch(e){ toast('家族の美術館を読み込めませんでした'); } finally{ busy(false); } }
   await render(true); resetView();
 }
 $('modeMine').onclick=()=>setMode('mine');
@@ -1342,31 +1355,31 @@ $('menuFamily').onclick=()=>{ show('menuSheet',false); openFamily(); };
 $('familyClose').onclick=()=>show('familySheet',false);
 function openFamily(){
   const sh=myShare(), box=$('familyBody');
-  if(!API_KEY){ box.innerHTML='<div class="note err">家族の部屋を使うには、アプリの設定（APIキー）が必要です。</div>'; show('familySheet'); return; }
+  if(!API_KEY){ box.innerHTML='<div class="note err">家族の美術館を使うには、アプリの設定（APIキー）が必要です。</div>'; show('familySheet'); return; }
   if(!sh){
-    $('familyTitle').textContent='家族の部屋をつくる';
-    box.innerHTML=`<p class="lead">家族それぞれが自分のスマホから作品を飾り、みんなの作品が並ぶ部屋です。遠くの親戚には「見るだけ」のリンクも送れます。</p>
-      <label for="inMyName">部屋での表示名</label><input type="text" id="inMyName" placeholder="例：パパ" maxlength="12">
-      <label for="inRoomName">部屋の名前</label><input type="text" id="inRoomName" placeholder="例：中島家" maxlength="20" value="${esc(remote.name||'')}">
-      <div class="note">今飾っている作品も部屋に並びます（作品ごとに「飾らない」にもできます）。共有した作品は、リンクを知っている家族や親戚が見られるようになります。</div>
-      <div class="row"><button class="btn primary" id="familyCreate">家族の部屋をつくる</button></div>`;
+    $('familyTitle').textContent='家族の美術館をつくる';
+    box.innerHTML=`<p class="lead">家族それぞれが自分のスマホから作品を飾り、みんなの作品が並ぶ美術館です。遠くの親戚には「見るだけ」のリンクも送れます。</p>
+      <label for="inMyName">あなたの呼び名（登録した人として表示）</label><input type="text" id="inMyName" placeholder="例：パパ" maxlength="12">
+      <label for="inRoomName">美術館の名前</label><input type="text" id="inRoomName" placeholder="例：中島家" maxlength="20" value="${esc(remote.name||'')}">
+      <div class="note">今飾っている作品も美術館に並びます（作品ごとに「飾らない」にもできます）。共有した作品は、リンクを知っている家族や親戚が見られるようになります。</div>
+      <div class="row"><button class="btn primary" id="familyCreate">家族の美術館をつくる</button></div>`;
     $('familyCreate').onclick=async()=>{
       const n=$('inMyName').value.trim(), r=$('inRoomName').value.trim();
       if(!n){ $('inMyName').focus(); return; } if(!r){ $('inRoomName').focus(); return; }
       if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
-      try{ await enableShare(n, r, []); toast('家族の部屋ができました'); await setMode('family'); openFamily(); }
-      catch(e){ if(e instanceof AuthError) needAuth(); console.warn(e); toast('部屋をつくれませんでした'); }
+      try{ await enableShare(n, r, []); toast('家族の美術館ができました'); await setMode('family'); openFamily(); }
+      catch(e){ if(e instanceof AuthError) needAuth(); console.warn(e); toast('美術館をつくれませんでした'); }
     };
   } else {
-    $('familyTitle').textContent=`「${sh.roomName||'家族'}」の部屋`;
+    $('familyTitle').textContent=`「${sh.roomName||'家族'}」の美術館`;
     const names=[sh.name||'わたし'].concat(roomMembers.map(m=>m.name));
     const inv=inviteUrl(sh.publicId), vw=viewUrl(sh.publicId);
     box.innerHTML=`<div class="meta">メンバー（${names.length}人）</div><div class="members">${names.map((x,i)=>`<span>${esc(x)}${i===0?'（わたし）':''}</span>`).join('')}</div>
       <div class="sharebox"><b>👪 家族を招待する</b><p>家族が開いてGoogleでログインし「参加する」を押すと、自分の作品も飾れるようになります。</p>
-        <div class="row"><a class="btn line sm" target="_blank" rel="noopener" href="${lineHref(`「${sh.roomName||'家族'}」の家族の部屋に招待します。開いてGoogleでログインし、「参加する」を押してください。\n${inv}`)}">LINEで招待</a><button class="btn ghost sm" id="copyInvite">リンクをコピー</button></div></div>
-      <div class="sharebox"><b>👀 親戚に見せる（見るだけ）</b><p>ログインなしで、部屋に並んだ作品を見られます。作品の追加や変更はできません。</p>
+        <div class="row"><a class="btn line sm" target="_blank" rel="noopener" href="${lineHref(`「${sh.roomName||'家族'}」の家族の美術館に招待します。開いてGoogleでログインし、「参加する」を押してください。\n${inv}`)}">LINEで招待</a><button class="btn ghost sm" id="copyInvite">リンクをコピー</button></div></div>
+      <div class="sharebox"><b>👀 親戚に見せる（見るだけ）</b><p>ログインなしで、美術館に並んだ作品を見られます。作品の追加や変更はできません。</p>
         <div class="row"><a class="btn line sm" target="_blank" rel="noopener" href="${lineHref(`${sh.roomName||'家族'}の「おもいで美術館」です。ログインなしで見られます。\n${vw}`)}">LINEで送る</a><button class="btn ghost sm" id="copyView">リンクをコピー</button></div></div>
-      <div class="row"><button class="btn ghost sm" id="familyRefresh">部屋を最新にする</button><button class="btn danger sm" id="familyStop">共有をやめる</button></div>`;
+      <div class="row"><button class="btn ghost sm" id="familyRefresh">最新にする</button><button class="btn danger sm" id="familyStop">共有をやめる</button></div>`;
     $('copyInvite').onclick=()=>copyText(inv);
     $('copyView').onclick=()=>copyText(vw);
     $('familyRefresh').onclick=async()=>{ busy(true,'読み込んでいます…'); try{ await refreshRoom(); await render(true); openFamily(); }catch(e){ toast('読み込めませんでした'); } finally{ busy(false); } };
@@ -1374,7 +1387,7 @@ function openFamily(){
       const b=$('familyStop');
       if(!b.classList.contains('armed')){ b.classList.add('armed'); b.textContent='もう一度押すと共有をやめる'; return; }
       if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
-      try{ await disableShare(); show('familySheet',false); toast('共有をやめました。作品は自分の美術館に残っています',4000); }
+      try{ await disableShare(); show('familySheet',false); toast('共有をやめました。作品は自分の部屋に残っています',4000); }
       catch(e){ if(e instanceof AuthError) needAuth(); toast('うまくいきませんでした'); }
     };
   }
@@ -1382,12 +1395,12 @@ function openFamily(){
 }
 // 共有を始める：公開データを作り、共有する作品をリンクで見られるようにする
 async function enableShare(name, roomNm, members){
-  busy(true,'家族の部屋を準備しています…');
+  busy(true,'家族の美術館を準備しています…');
   try{
     await drive.ensure();
     const d=await drive.readIndex();
     let pid=d.share && d.share.publicId;
-    if(!pid){ const f=await drive.upload(new Blob(['{}'],{type:'application/json'}), '家族の部屋の公開データ（消さないでください）.json', 'public'); pid=f.id; }
+    if(!pid){ const f=await drive.upload(new Blob(['{}'],{type:'application/json'}), '家族の美術館の公開データ（消さないでください）.json', 'public'); pid=f.id; }
     await drive.setPublic(pid, true);
     const items=d.items.filter(it=>it.shared!==false); let i=0;
     for(const it of items){ busy(true,`作品を共有しています（${++i}/${items.length}）`); for(const fid of fileIdsOf(it)) await drive.setPublic(fid,true); }
@@ -1416,14 +1429,14 @@ async function handleJoin(id){
   const rn = (inv.room&&inv.room.name) || inv.museum || '家族';
   if(sh){
     if((sh.members||[]).includes(id)){ toast(`${inv.name||'家族'}さんとは、もうつながっています`); return; }
-    busy(true,'家族の部屋につないでいます…');
-    try{ remote=await drive.mutate(d=>{ d.share.members=[...new Set([...(d.share.members||[]), id])]; }); saveLocalIndex(); await setMode('family'); toast(`${inv.name||'家族'}さんの作品が部屋に並びました`,4000); }
+    busy(true,'家族の美術館につないでいます…');
+    try{ remote=await drive.mutate(d=>{ d.share.members=[...new Set([...(d.share.members||[]), id])]; }); saveLocalIndex(); await setMode('family'); toast(`${inv.name||'家族'}さんの作品が美術館に並びました`,4000); }
     catch(e){ if(e instanceof AuthError) needAuth(); toast('つなげませんでした'); }
     finally{ busy(false); }
     return;
   }
   joinTarget={ id, roomName:rn };
-  $('joinLead').textContent=`${inv.name||'ご家族'}さんから「${rn}」の家族の部屋に招待されています。`;
+  $('joinLead').textContent=`${inv.name||'ご家族'}さんから「${rn}」の家族の美術館に招待されています。`;
   $('joinForm').style.display=''; $('joinDone').style.display='none'; $('inJoinName').value='';
   show('joinSheet');
 }
@@ -1436,13 +1449,35 @@ $('joinGo').onclick=async()=>{
     await enableShare(n, joinTarget.roomName, [joinTarget.id]);
     await setMode('family');
     const sh=myShare(), url=inviteUrl(sh.publicId);
-    const msg=`「${sh.roomName||'家族'}」の部屋に参加しました（${n}）。このリンクを開くと、わたしの作品もみんなの部屋に並びます。\n${url}`;
+    const msg=`「${sh.roomName||'家族'}」の美術館に参加しました（${n}）。このリンクを開くと、わたしの作品も家族の美術館に並びます。\n${url}`;
     $('joinNotify').href=lineHref(msg); $('joinCopy').onclick=()=>copyText(url);
     $('joinForm').style.display='none'; $('joinDone').style.display='';
   }catch(e){ if(e instanceof AuthError) needAuth(); console.warn(e); toast('参加できませんでした'); }
 };
 $('viewInfoOk').onclick=()=>show('viewInfoSheet',false);
 $('viewInfoMine').onclick=()=>{ location.href=APP_URL; };
+
+/* ---------------- 作者（過去に入れた名前から選べる） ---------------- */
+function rememberAuthor(a){
+  if(!a) return;
+  lsSet('omoide.lastAuthor', a);
+  let list=[]; try{ list=JSON.parse(lsGet('omoide.authors')||'[]'); }catch(e){}
+  list=[a].concat(list.filter(x=>x!==a)).slice(0,12);
+  lsSet('omoide.authors', JSON.stringify(list));
+}
+function knownAuthors(){
+  let list=[]; try{ list=JSON.parse(lsGet('omoide.authors')||'[]'); }catch(e){}
+  const seen=new Map(); list.forEach((a,i)=>seen.set(a, 1e15-i));
+  remote.items.concat(pendingItems, roomItems).forEach(it=>{ if(it.author && !seen.has(it.author)) seen.set(it.author, it.created||0); });
+  return [...seen].sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,10);
+}
+function drawAuthorChips(boxId, inputId){
+  const box=$(boxId), input=$(inputId), list=knownAuthors(), cur=input.value.trim();
+  box.innerHTML=''; box.style.display = list.length ? 'flex' : 'none';
+  list.forEach(a=>{ const b=document.createElement('button'); b.type='button'; b.className='chip'+(a===cur?' on':''); b.textContent=a;
+    b.onclick=()=>{ input.value = (input.value.trim()===a) ? '' : a; drawAuthorChips(boxId,inputId); }; box.appendChild(b); });
+  input.oninput=()=>{ const v=input.value.trim(); [...box.children].forEach(c=>c.classList.toggle('on', c.textContent===v)); };
+}
 
 /* ---------------- 作品の一覧 ---------------- */
 let listSort='new';
@@ -1460,7 +1495,7 @@ function drawList(){
     const row=document.createElement('button'); row.className='wrow';
     const th=document.createElement('div'); th.className='wthumb'+(it.cutout?' cut':''); th.textContent = it.type==='model' ? '🧊' : '';
     const info=document.createElement('div'); info.className='winfo';
-    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.ownerName?esc(it.ownerName)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${TYPE_LABEL[it.type]||''}${it.shared===false&&myShare()&&!familyMode()?'・🔒':''}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
+    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.author?'作：'+esc(it.author)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${TYPE_LABEL[it.type]||''}${it.shared===false&&myShare()&&!familyMode()?'・🔒':''}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
     row.append(th,info);
     row.onclick=()=>openViewer(it);
     box.appendChild(row);
@@ -1622,14 +1657,15 @@ $('file3d').onchange=async e=>{
   $('addPreview').innerHTML=`<div class="file3d">🧊 ${esc(f.name)}<br>（${(f.size/1048576).toFixed(1)} MB）</div>`;
   openAdd('3D作品を置く','例：ダンボールのロボット');
 };
-function openAdd(title, ph){ $('spinOpts').style.display='none'; $('addTitle').textContent=title; $('inTitle').value=''; $('inTitle').placeholder=ph; $('inDate').value=today(); $('inMemo').value=''; show('addSheet'); }
+function openAdd(title, ph){ $('spinOpts').style.display='none'; $('inAuthor').value=lsGet('omoide.lastAuthor')||''; drawAuthorChips('authorChips','inAuthor'); $('addTitle').textContent=title; $('inTitle').value=''; $('inTitle').placeholder=ph; $('inDate').value=today(); $('inMemo').value=''; show('addSheet'); }
 function closeAdd(){ show('addSheet',false); closeSpinView(); if(pending&&pending.urls) pending.urls.forEach(u=>URL.revokeObjectURL(u)); pending=null; }
 $('addCancel').onclick=closeAdd;
 $('addSave').onclick=async()=>{
   if(!pending) return;
   const p=pending; pending=null;
   show('addSheet',false); closeSpinView(); (p.urls||[]).forEach(u=>URL.revokeObjectURL(u));
-  const item={ id:uid(), type:p.type, title:$('inTitle').value.trim(), date:$('inDate').value, memo:$('inMemo').value.trim(), created:Date.now(), local:true };
+  const author=$('inAuthor').value.trim(); rememberAuthor(author);
+  const item={ id:uid(), type:p.type, title:$('inTitle').value.trim(), author, date:$('inDate').value, memo:$('inMemo').value.trim(), created:Date.now(), local:true };
   if(p.type==='spin'){ item.blobs=p.blobs; item.cutout=!!(p.useCut && p.cut); item.spinDir=p.dir||1; } else item.blob=p.blob;
   await outboxPut(item);
   pendingItems.push(item);
@@ -1747,7 +1783,7 @@ $('optDir').onclick=()=>{ if(!pending) return; pending.dir=-pending.dir; if(spin
   if(result==='scope'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='「Googleドライブのファイルの作成・編集」にチェックを入れて、もう一度ログインしてください。'; return; }
   if(!auth.signedIn){
     show('welcomeSheet'); if(isInApp) show('inappSheet');
-    if(lsGet('omoide.pendingJoin')){ $('loginErr').style.display='block'; $('loginErr').classList.remove('err'); $('loginErr').textContent='家族の部屋に招待されています。Googleでログインすると参加できます。'; }
+    if(lsGet('omoide.pendingJoin')){ $('loginErr').style.display='block'; $('loginErr').classList.remove('err'); $('loginErr').textContent='家族の美術館に招待されています。Googleでログインすると参加できます。'; }
     return;
   }
 
