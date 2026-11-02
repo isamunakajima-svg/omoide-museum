@@ -504,34 +504,95 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 app.appendChild(renderer.domElement);
 
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0xf3ede4);
-scene.fog=new THREE.Fog(0xf3ede4,14,40);
-const camera=new THREE.PerspectiveCamera(66,1,0.05,100);
+const SKY_TOP=0x8fc3ea, SKY_HORIZON=0xeaf3f6;
+scene.background=new THREE.Color(SKY_HORIZON);
+scene.fog=new THREE.Fog(SKY_HORIZON,40,170);
+const camera=new THREE.PerspectiveCamera(66,1,0.05,400);
 camera.rotation.order='YXZ';
-scene.add(new THREE.HemisphereLight(0xfff6ea,0x9c8a74,1.5));
-const sun=new THREE.DirectionalLight(0xffffff,1.1); sun.position.set(2,6,4); scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xffffff,0xb7c39c,1.7));
+const sun=new THREE.DirectionalLight(0xfff4e0,1.5); sun.position.set(6,12,5); scene.add(sun);
 
-const W=7, H=3.4, SP=3.0, EYE=1.6;
+// 室内の寸法（W:幅 H:天井の高さ HS:壁の高さ。その上は高窓）
+const W=8, H=4.4, HS=3.1, SP=3.0, EYE=1.6;
 let L=12;
-const roomGroup=new THREE.Group(), itemsGroup=new THREE.Group();
-scene.add(roomGroup, itemsGroup);
+const roomGroup=new THREE.Group(), itemsGroup=new THREE.Group(), outdoorGroup=new THREE.Group();
+scene.add(outdoorGroup, roomGroup, itemsGroup);
 let floorMesh=null, pickables=[], spinners=[], spinCards=[];
 const anchors=new Map();
 
-function woodTexture(){
+function woodTexture(tones, line){
   const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
-  const tones=['#c9a27a','#c29a71','#cfa983','#bf966c','#c7a079'];
   for(let i=0;i<8;i++){ x.fillStyle=tones[(i*3)%tones.length]; x.fillRect(0,i*64,512,64);
-    const off=(i*137)%512; x.fillStyle='#a57f58'; x.fillRect(off,i*64,3,64);
-    x.globalAlpha=.08; for(let k=0;k<6;k++){ x.fillStyle='#6b4a2c'; x.fillRect(0,i*64+8+k*9,512,1.5);} x.globalAlpha=1;
-    x.fillStyle='#9c7650'; x.fillRect(0,i*64+62,512,2); }
+    const off=(i*137)%512; x.fillStyle=line; x.fillRect(off,i*64,3,64);
+    x.globalAlpha=.06; for(let k=0;k<6;k++){ x.fillStyle='#6b4a2c'; x.fillRect(0,i*64+8+k*9,512,1.5);} x.globalAlpha=1;
+    x.fillStyle=line; x.fillRect(0,i*64+62,512,2); }
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
 }
-const woodTex=woodTexture();
-const wallMat=new THREE.MeshStandardMaterial({color:0xf7f1e8,roughness:1,emissive:0x3a332b,emissiveIntensity:.55});
-const ceilMat=new THREE.MeshBasicMaterial({color:0xf1ebe2,toneMapped:false});
-const baseMat=new THREE.MeshStandardMaterial({color:0x8a6a4c,roughness:.8});
+const woodTex=woodTexture(['#e2c9a6','#dcc29d','#e8d1b0','#d8bd96','#e0c6a2'],'#c9ad87');
+const wallMat=new THREE.MeshStandardMaterial({color:0xfbf8f3,roughness:1,emissive:0x4a453d,emissiveIntensity:.5});
+const beamMat=new THREE.MeshStandardMaterial({color:0xc9a57c,roughness:.7});
+const frameMat=new THREE.MeshStandardMaterial({color:0xf6f3ee,roughness:.6});
+const glassMat=new THREE.MeshBasicMaterial({color:0xdff0f7,transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide});
+const baseMat=new THREE.MeshStandardMaterial({color:0xb08c64,roughness:.8});
 
+// 決まった並びの乱数（毎回同じ庭になるように）
+function rng(seed){ return ()=>{ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; }; }
+
+/* ---------- 外の景色（空・芝生・木・丘・雲） ---------- */
+function skyTexture(){
+  const c=document.createElement('canvas'); c.width=4; c.height=256; const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,'#6fb0e3'); g.addColorStop(.42,'#a9d2ef'); g.addColorStop(.5,'#eaf3f6'); g.addColorStop(1,'#eaf3f6');
+  x.fillStyle=g; x.fillRect(0,0,4,256);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+function grassTexture(){
+  const c=document.createElement('canvas'); c.width=256; c.height=256; const x=c.getContext('2d');
+  x.fillStyle='#9cc27a'; x.fillRect(0,0,256,256);
+  const r=rng(7); for(let i=0;i<900;i++){ x.fillStyle=['#8fb86d','#a8cb86','#94bc73','#b0d18f'][i%4]; x.globalAlpha=.5; x.fillRect(r()*256,r()*256,2+r()*4,2+r()*4); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(60,60); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+const sky=new THREE.Mesh(new THREE.SphereGeometry(300,32,16), new THREE.MeshBasicMaterial({map:skyTexture(),side:THREE.BackSide,fog:false,toneMapped:false}));
+scene.add(sky);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600), new THREE.MeshStandardMaterial({map:grassTexture(),roughness:1}));
+ground.rotation.x=-Math.PI/2; ground.position.y=-.03; scene.add(ground);
+const leafMats=[0x6fa85a,0x84b866,0x5f9a52,0x93c172].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.9,flatShading:true}));
+const trunkMat=new THREE.MeshStandardMaterial({color:0x8a6a4c,roughness:1});
+const leafGeo=new THREE.IcosahedronGeometry(1,1), trunkGeo=new THREE.CylinderGeometry(.13,.18,1,7);
+function tree(x,z,s,r){
+  const g=new THREE.Group(); g.position.set(x,0,z); g.scale.setScalar(s);
+  const t=new THREE.Mesh(trunkGeo,trunkMat); t.scale.y=2.2; t.position.y=1.1; g.add(t);
+  const n=2+Math.floor(r()*3);
+  for(let i=0;i<n;i++){ const f=new THREE.Mesh(leafGeo,leafMats[Math.floor(r()*leafMats.length)]);
+    const k=.8+r()*.6; f.scale.set(k*1.1,k,k*1.1); f.position.set((r()-.5)*1.2, 2.6+r()*1.2, (r()-.5)*1.2); g.add(f); }
+  return g;
+}
+function buildOutdoor(){
+  outdoorGroup.clear();
+  const r=rng(42);
+  // テラス（建物のまわりの石畳）
+  const terrace=new THREE.Mesh(new THREE.PlaneGeometry(W+6,L+8), new THREE.MeshStandardMaterial({color:0xe7e1d6,roughness:1}));
+  terrace.rotation.x=-Math.PI/2; terrace.position.y=-.015; outdoorGroup.add(terrace);
+  // 木（建物にぶつからない位置に）
+  for(let i=0;i<48;i++){
+    const ang=r()*Math.PI*2, d=8+r()*45;
+    const x=Math.cos(ang)*d*1.3, z=Math.sin(ang)*(d+L/2);
+    if(Math.abs(x)<W/2+4 && Math.abs(z)<L/2+5) continue;
+    outdoorGroup.add(tree(x,z,.8+r()*.9,r));
+  }
+  // 遠くの丘
+  const hillMat=new THREE.MeshStandardMaterial({color:0x8fb07f,roughness:1});
+  for(let i=0;i<9;i++){ const a=i/9*Math.PI*2+r()*.3; const h=new THREE.Mesh(new THREE.SphereGeometry(1,24,12),hillMat);
+    h.scale.set(40+r()*30,10+r()*12,40+r()*30); h.position.set(Math.cos(a)*170,-2,Math.sin(a)*170); outdoorGroup.add(h); }
+  // 雲
+  const cloudMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.92,fog:false});
+  for(let i=0;i<10;i++){ const g=new THREE.Group(); const a=r()*Math.PI*2, d=110+r()*90;
+    g.position.set(Math.cos(a)*d, 45+r()*35, Math.sin(a)*d);
+    for(let k=0;k<5;k++){ const s=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),cloudMat); const sc=5+r()*6; s.scale.set(sc*1.6,sc*.7,sc); s.position.set((k-2)*7+r()*3, r()*2, r()*4); g.add(s); }
+    outdoorGroup.add(g); }
+}
+
+/* ---------- 文字の板 ---------- */
 function textTexture(lines, w=512, h=160, opts={}){
   const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
   x.fillStyle=opts.bg||'#fbf8f3'; x.fillRect(0,0,w,h);
@@ -551,23 +612,51 @@ function disposeGroup(g){
     if(o.material && o.userData.ownMat){ [].concat(o.material).forEach(m=>{ if(m.map && m.userData.ownMap) m.map.dispose(); m.dispose(); }); } });
   g.clear();
 }
+function plant(x,z){
+  const g=new THREE.Group(); g.position.set(x,0,z);
+  const pot=new THREE.Mesh(new THREE.CylinderGeometry(.24,.18,.45,16), new THREE.MeshStandardMaterial({color:0xe9e4dc,roughness:.8})); pot.position.y=.225; pot.userData.ownMat=true; g.add(pot);
+  const r=rng(Math.floor(Math.abs(x*100+z*10))+3);
+  for(let i=0;i<5;i++){ const f=new THREE.Mesh(leafGeo,leafMats[i%leafMats.length]); f.userData.keep=true; const k=.22+r()*.12; f.scale.set(k,k*1.3,k); f.position.set((r()-.5)*.35,.6+r()*.5,(r()-.5)*.35); g.add(f); }
+  return g;
+}
 
 let museumName='';
 function buildRoom(){
   disposeGroup(roomGroup);
+  const box=(w,h,d,mat,x,y,z)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); roomGroup.add(m); return m; };
+  // 床
   const ft=woodTex.clone(); ft.needsUpdate=true; ft.repeat.set(W/2.2,L/2.2);
-  floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(W,L), new THREE.MeshStandardMaterial({map:ft,roughness:.7}));
+  floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(W,L), new THREE.MeshStandardMaterial({map:ft,roughness:.6}));
   floorMesh.rotation.x=-Math.PI/2; floorMesh.userData.ownMat=true; roomGroup.add(floorMesh);
-  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(W,L), ceilMat); ceil.rotation.x=Math.PI/2; ceil.position.y=H; roomGroup.add(ceil);
-  const wall=(w,x,z,ry)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,H), wallMat); m.position.set(x,H/2,z); m.rotation.y=ry; roomGroup.add(m);
-    const b=new THREE.Mesh(new THREE.BoxGeometry(w,.12,.03), baseMat); b.position.set(x,.06,z); b.rotation.y=ry; b.translateZ(.015); roomGroup.add(b); };
-  wall(L,-W/2,0,Math.PI/2); wall(L,W/2,0,-Math.PI/2); wall(W,0,-L/2,0); wall(W,0,L/2,Math.PI);
-  for(let z=-L/2+1.5; z<L/2-1; z+=3){ const p=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.18), new THREE.MeshBasicMaterial({color:0xfffbf0})); p.rotation.x=Math.PI/2; p.position.set(0,H-.01,z); p.userData.ownMat=true; roomGroup.add(p); }
+  // 左右の壁（作品を掛ける白い壁）＋その上の高窓
+  [-1,1].forEach(s=>{
+    const wall=new THREE.Mesh(new THREE.PlaneGeometry(L,HS), wallMat); wall.position.set(s*W/2,HS/2,0); wall.rotation.y=-s*Math.PI/2; roomGroup.add(wall);
+    box(.04,.12,L,baseMat, s*(W/2-.02),.06,0);
+    const gl=new THREE.Mesh(new THREE.PlaneGeometry(L,H-HS), glassMat); gl.position.set(s*W/2,(HS+H)/2,0); gl.rotation.y=-s*Math.PI/2; roomGroup.add(gl);
+    box(.12,.1,L,frameMat, s*W/2,HS,0);
+    for(let z=-L/2; z<=L/2+.01; z+=1.5) box(.08,H-HS,.06,frameMat, s*W/2,(HS+H)/2,z);
+  });
+  // 手前と奥は床から天井までのガラス
+  [-1,1].forEach(s=>{
+    const gl=new THREE.Mesh(new THREE.PlaneGeometry(W,H), glassMat); gl.position.set(0,H/2,s*L/2); roomGroup.add(gl);
+    for(let x=-W/2; x<=W/2+.01; x+=W/4) box(.07,H,.07,frameMat, x,H/2,s*L/2);
+    box(W,.08,.1,frameMat,0,H,s*L/2); box(W,.06,.1,baseMat,0,.03,s*L/2);
+  });
+  // ガラスの天井と木の梁
+  const roof=new THREE.Mesh(new THREE.PlaneGeometry(W,L), glassMat); roof.rotation.x=Math.PI/2; roof.position.y=H; roomGroup.add(roof);
+  for(let z=-L/2+1; z<L/2; z+=1.4) box(W,.16,.12,beamMat,0,H,z);
+  [-1,1].forEach(s=>box(.18,.2,L,beamMat,s*(W/2-.09),H,0));
+  // 観葉植物
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>roomGroup.add(plant(sx*(W/2-.6), sz*(L/2-.6))));
+  // 奥に立てる看板
   const title = museumName ? `${museumName}の おもいで美術館` : 'おもいで美術館';
   const lines=[{text:title,size:museumName?70:84,y:BRAND?100:118,bold:true}];
   if(BRAND) lines.push({text:BRAND,size:34,y:180,color:'#9a8571'});
-  const sign=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.74), new THREE.MeshBasicMaterial({map:textTexture(lines,1260,290,{bg:'#f7f1e8',noBorder:true,color:'#7a5a3e'}),toneMapped:false}));
-  sign.position.set(0,2.3,-L/2+.01); sign.userData.ownMat=true; sign.material.userData.ownMap=true; roomGroup.add(sign);
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.6), new THREE.MeshBasicMaterial({map:textTexture(lines,1260,290,{bg:'#fbf8f3',noBorder:true,color:'#7a5a3e'}),toneMapped:false}));
+  const sz=-L/2+1.1; sign.position.set(0,1.75,sz+.03); sign.userData.ownMat=true; sign.material.userData.ownMap=true; roomGroup.add(sign);
+  box(2.72,.72,.05,beamMat,0,1.75,sz);
+  [-1.15,1.15].forEach(x=>box(.06,1.4,.06,beamMat,x,.7,sz));
+  buildOutdoor();
 }
 
 /* 読み込み済みの作品（作品ID単位） */
@@ -650,7 +739,7 @@ async function doBuild(items){
     const z = L/2-3-SP/2-j*SP;
     const g=new THREE.Group(); g.position.set(0,0,z);
     const ped=new THREE.Mesh(new THREE.BoxGeometry(.6,1,.6), new THREE.MeshStandardMaterial({color:0xfdfaf5,roughness:.9})); ped.position.y=.5; ped.userData.ownMat=true;
-    const top=new THREE.Mesh(new THREE.BoxGeometry(.66,.04,.66), new THREE.MeshStandardMaterial({color:0x4a3526,roughness:.5})); top.position.y=1.02; top.userData.ownMat=true;
+    const top=new THREE.Mesh(new THREE.BoxGeometry(.66,.04,.66), new THREE.MeshStandardMaterial({color:0xc9a57c,roughness:.6})); top.position.y=1.02; top.userData.ownMat=true;
     const plaque=plaqueFor(item,.44,.138); plaque.position.set(0,.78,.301);
     let holder;
     if(item.type==='spin'){ holder=spinCard(data); spinCards.push(holder); }
