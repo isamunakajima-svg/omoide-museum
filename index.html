@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>おもいで美術館</title>
+<meta name="theme-color" content="#f3ede4">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="おもいで美術館">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#3a2e25; --paper:#fbf7f1; --accent:#c8693f; --accent-d:#a9532d; --muted:#8a7d70; --line:#e6ddd1; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#f3ede4;color:var(--ink);font-family:"Zen Maru Gothic",system-ui,sans-serif}
+  #app{position:fixed;inset:0}
+  #app canvas{display:block;width:100%;height:100%;touch-action:none}
+  header{position:fixed;top:0;left:0;right:0;padding:calc(12px + env(safe-area-inset-top)) 14px 12px 16px;display:flex;align-items:center;gap:8px;
+    pointer-events:none;background:linear-gradient(#f3ede4ee,#f3ede400)}
+  header h1{margin:0;font-size:18px;font-weight:700;letter-spacing:.04em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header .count{font-size:13px;color:var(--muted);background:#fff9;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .icon-btn{pointer-events:auto;border:0;background:#fff9;border-radius:999px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--ink);cursor:pointer;flex:none}
+  .icon-btn svg{width:19px;height:19px}
+  #syncPill{position:fixed;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translateX(-50%);display:none;align-items:center;gap:8px;background:#3a2e25;color:#fff;
+    font-size:12.5px;padding:7px 12px;border-radius:999px;white-space:nowrap;z-index:5;cursor:pointer}
+  #syncPill.show{display:flex}
+  #syncPill .spin{width:14px;height:14px;border-width:2px}
+  #hint{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);background:#3a2e25d9;color:#fff;font-size:12.5px;
+    padding:8px 14px;border-radius:999px;white-space:nowrap;transition:opacity .6s;pointer-events:none}
+  #hint.hide{opacity:0}
+  .bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;
+    padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(#f3ede400,#f3ede4f2 40%)}
+  .bar.hidden{display:none}
+  .btn{border:0;border-radius:16px;font:inherit;font-weight:700;font-size:15px;padding:13px 18px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px #3a2e2522;color:var(--ink);text-decoration:none}
+  .btn:disabled{opacity:.45}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:active{background:var(--accent-d)}
+  .btn.ghost{background:#fff}
+  .btn.google{background:#fff;border:1.5px solid var(--line);width:100%}
+  .btn.danger{background:#fff;color:#b3261e;box-shadow:none;border:1.5px solid #e9c3bf}
+  .btn.danger.armed{background:#b3261e;color:#fff;border-color:#b3261e}
+  .btn svg{width:20px;height:20px}
+  .overlay{position:fixed;inset:0;background:#2a211bcc;display:none;align-items:flex-end;justify-content:center;z-index:10}
+  .overlay.show{display:flex}
+  .overlay.top{z-index:12}
+  .sheet{background:var(--paper);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+    max-height:94vh;overflow:auto;animation:up .25s ease}
+  @keyframes up{from{transform:translateY(40px);opacity:0}}
+  .sheet h2{margin:2px 0 6px;font-size:17px}
+  .sheet .lead{font-size:13.5px;color:var(--muted);margin:0 0 14px;line-height:1.7}
+  .points{list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:8px}
+  .points li{display:flex;gap:10px;font-size:13.5px;line-height:1.6;background:#fff;border-radius:12px;padding:10px 12px}
+  .points li span:first-child{font-size:18px;line-height:1.3}
+  .preview{width:100%;border-radius:12px;background:#efe7dc;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;touch-action:none}
+  .preview img{max-width:100%;max-height:46vh;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+  .preview canvas{width:100%;height:42vh;display:block;touch-action:none}
+  .preview .file3d{padding:40px 10px;text-align:center;color:var(--muted);font-size:14px}
+  .preview .badge{position:absolute;left:10px;top:10px;background:#3a2e25d9;color:#fff;font-size:12.5px;padding:5px 10px;border-radius:999px;pointer-events:none}
+  label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
+  input[type=text],input[type=date],textarea{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+  textarea{min-height:76px;resize:vertical;line-height:1.6}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:10px;margin-top:18px}
+  .row .btn{flex:1}
+  .meta{font-size:13px;color:var(--muted);margin-top:6px}
+  .note{font-size:12.5px;color:var(--muted);background:#f1e9de;border-radius:10px;padding:9px 11px;margin-top:12px;line-height:1.6}
+  .note.err{background:#fbe9e7;color:#8c1d18}
+  .choice{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;border:1.5px solid var(--line);background:#fff;border-radius:16px;padding:14px;margin-top:10px;font:inherit;color:var(--ink);cursor:pointer;text-decoration:none}
+  .choice:active{border-color:var(--accent)}
+  .choice .ic{font-size:24px;line-height:1}
+  .choice b{display:block;font-size:15px;margin-bottom:3px}
+  .choice span{font-size:12.5px;color:var(--muted);line-height:1.5}
+  .link{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;margin-top:14px;cursor:pointer;display:block;width:100%;text-align:center}
+  .small{font-size:12px;color:var(--muted);line-height:1.6;margin-top:12px;text-align:center}
+  .small a{color:var(--muted)}
+  /* カメラ */
+  #cam{position:fixed;inset:0;background:#000;z-index:15;display:none;flex-direction:column}
+  #cam.show{display:flex}
+  #camStage{position:relative;flex:1;overflow:hidden}
+  #camStage video,#camStage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  #camGhost{opacity:.3;pointer-events:none}
+  .camTop{position:absolute;left:0;right:0;top:0;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;justify-content:space-between;color:#fff;
+    background:linear-gradient(#000a,#0000);z-index:2}
+  .camTop button{border:0;background:#fff3;color:#fff;font:inherit;font-weight:700;font-size:14px;border-radius:999px;padding:8px 14px;cursor:pointer}
+  .camTop button:disabled{opacity:.35}
+  #camCount{font-size:15px;font-weight:700}
+  .camGuide{position:absolute;left:12px;right:12px;bottom:12px;color:#fff;font-size:13px;text-align:center;background:#0008;border-radius:12px;padding:8px 10px;z-index:2;line-height:1.5}
+  .camBottom{background:#000;padding:12px 16px calc(16px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:14px}
+  #camThumbs{flex:1;display:flex;gap:4px;overflow-x:auto;min-height:44px}
+  #camThumbs img{width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none}
+  #camShutter{width:72px;height:72px;border-radius:50%;border:5px solid #fff;background:#fff3;flex:none;cursor:pointer}
+  #camShutter:active{background:#fff}
+  #camAlbum{flex:1;border:0;background:none;color:#fff;font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;text-align:right}
+  #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s;z-index:3}
+  #toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#3a2e25;color:#fff;padding:10px 16px;border-radius:12px;
+    font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:30;max-width:90vw;text-align:center}
+  #toast.show{opacity:1}
+  #busy{position:fixed;inset:0;background:#2a211b88;z-index:25;display:none;align-items:center;justify-content:center}
+  #busy.show{display:flex}
+  #busy div{background:var(--paper);padding:18px 22px;border-radius:16px;font-size:15px;display:flex;gap:12px;align-items:center}
+  .spin{width:20px;height:20px;border:3px solid #e6ddd1;border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;flex:none}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#f3ede4;z-index:40;font-size:15px;color:var(--muted);transition:opacity .4s}
+  #loading.hide{opacity:0;pointer-events:none}
+  input[type=file]{display:none}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<header>
+  <h1 id="museumName">おもいで美術館</h1>
+  <span class="count" id="count"></span>
+  <button class="icon-btn" id="openMenu" aria-label="メニュー">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+</header>
+<div id="syncPill"><span class="spin"></span><span id="syncText">ドライブに保存中…</span></div>
+<div id="hint">ドラッグで見回す ・ 2本指でズーム ・ 床をタップで移動</div>
+
+<div class="bar hidden" id="bar">
+  <button class="btn primary" id="addPhoto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    写真・絵を飾る
+  </button>
+  <button class="btn ghost" id="add3d">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+    立体を飾る
+  </button>
+</div>
+<input type="file" id="filePhoto" accept="image/*">
+<input type="file" id="fileSpin" accept="image/*" multiple>
+<input type="file" id="file3d" accept=".glb,model/gltf-binary">
+
+<!-- ようこそ・ログイン -->
+<div class="overlay" id="welcomeSheet">
+  <div class="sheet">
+    <h2>おもいで美術館へようこそ</h2>
+    <p class="lead">手放す前の思い出の品や、お子さんの絵・工作を写真に残して、あなただけの美術館に飾れます。</p>
+    <ul class="points">
+      <li><span>📷</span><span>スマホで撮るだけ。工作は一周撮ると、くるっと回して見られます。</span></li>
+      <li><span>🔒</span><span>作品は<b>あなたのGoogleドライブ</b>だけに保存されます。アプリの提供者には見えません。</span></li>
+      <li><span>📱</span><span>機種変更しても、同じGoogleアカウントでログインすればそのまま見られます。</span></li>
+    </ul>
+    <button class="btn google" id="loginBtn">
+      <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+      Googleでログインしてはじめる
+    </button>
+    <div class="note err" id="loginErr" style="display:none"></div>
+    <button class="link" id="welcomeLater">先に見本を見る</button>
+    <div class="small">Googleアカウントがない方は <a href="https://accounts.google.com/signup" target="_blank" rel="noopener">こちらから無料で作成</a> できます。<br><a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a></div>
+  </div>
+</div>
+
+<!-- LINE などアプリ内ブラウザ -->
+<div class="overlay top" id="inappSheet">
+  <div class="sheet">
+    <h2>ブラウザで開いてください</h2>
+    <p class="lead">LINEなどのアプリの中では、Googleにログインできません。<br>画面右上（または右下）のメニューから「<b>ブラウザで開く</b>」を選んでください。</p>
+    <div class="row"><button class="btn ghost" id="inappClose">閉じる</button></div>
+  </div>
+</div>
+
+<!-- 美術館の名前 -->
+<div class="overlay top" id="nameSheet">
+  <div class="sheet">
+    <h2>美術館に名前をつけましょう</h2>
+    <label for="inName">名前（入口の看板になります）</label>
+    <input type="text" id="inName" placeholder="例：山田家" maxlength="20">
+    <div class="meta" id="namePreview"></div>
+    <div class="row"><button class="btn ghost" id="nameSkip">あとで</button><button class="btn primary" id="nameGo">決める</button></div>
+  </div>
+</div>
+
+<!-- メニュー -->
+<div class="overlay" id="menuSheet">
+  <div class="sheet">
+    <h2>メニュー</h2>
+    <div class="meta" id="menuAccount"></div>
+    <button class="choice" id="menuRename"><span class="ic">🏷️</span><div><b>美術館の名前を変える</b><span id="menuNameNow"></span></div></button>
+    <a class="choice" id="menuDrive" target="_blank" rel="noopener"><span class="ic">📁</span><div><b>Googleドライブで見る</b><span>保存された写真のファイルを直接見られます。</span></div></a>
+    <button class="choice" id="menuHome"><span class="ic">📲</span><div><b>ホーム画面に追加する方法</b><span>アプリのように、すぐ開けるようになります。</span></div></button>
+    <button class="choice" id="menuLogout"><span class="ic">🚪</span><div><b>ログアウト</b><span>この端末から美術館のデータを消します（ドライブの作品は消えません）。</span></div></button>
+    <button class="link" id="menuClose">閉じる</button>
+    <div class="small"><a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a></div>
+  </div>
+</div>
+
+<!-- ホーム画面に追加 -->
+<div class="overlay top" id="homeSheet">
+  <div class="sheet">
+    <h2>ホーム画面に追加する</h2>
+    <p class="lead"><b>iPhone（Safari）</b>：下の共有ボタン（□に↑）→「ホーム画面に追加」<br><b>Android（Chrome）</b>：右上の︙ →「ホーム画面に追加」</p>
+    <div class="row"><button class="btn primary" id="homeClose">わかった</button></div>
+  </div>
+</div>
+
+<!-- 立体の追加方法 -->
+<div class="overlay" id="menu3d">
+  <div class="sheet">
+    <h2>立体の作品を飾る</h2>
+    <button class="choice" id="chooseSpin"><span class="ic">🔄</span><div><b>くるっと写真を撮る</b><span>作品のまわりを一周しながら8〜12枚撮ると、指で回して見られる作品になります。</span></div></button>
+    <button class="choice" id="chooseGlb"><span class="ic">🧊</span><div><b>3Dファイル（.glb）を選ぶ</b><span>無料アプリ Scaniverse でスキャンしたファイルを置けます。</span></div></button>
+    <button class="link" id="menu3dCancel">やめる</button>
+  </div>
+</div>
+
+<!-- 追加 -->
+<div class="overlay" id="addSheet">
+  <div class="sheet">
+    <h2 id="addTitle">作品を飾る</h2>
+    <div class="preview" id="addPreview"></div>
+    <label for="inTitle">タイトル</label>
+    <input type="text" id="inTitle" placeholder="例：はじめて描いた家族の絵" maxlength="30">
+    <label for="inDate">いつの思い出？</label>
+    <input type="date" id="inDate">
+    <label for="inMemo">思い出メモ（なくてもOK）</label>
+    <textarea id="inMemo" maxlength="300" placeholder="例：年長の夏に作ったロボット。手放す前に写真に残しました。"></textarea>
+    <div class="row">
+      <button class="btn ghost" id="addCancel">やめる</button>
+      <button class="btn primary" id="addSave">美術館に飾る</button>
+    </div>
+  </div>
+</div>
+
+<!-- 作品ビューア -->
+<div class="overlay" id="viewSheet">
+  <div class="sheet">
+    <div class="preview" id="viewPreview"></div>
+    <label for="vTitle">タイトル</label>
+    <input type="text" id="vTitle" maxlength="30">
+    <label for="vMemo">思い出メモ</label>
+    <textarea id="vMemo" maxlength="300" placeholder="思い出を書きとめておけます"></textarea>
+    <div class="meta" id="vMeta"></div>
+    <div class="note" id="vNote" style="display:none"></div>
+    <div class="row">
+      <button class="btn danger" id="vDelete">しまう（削除）</button>
+      <button class="btn primary" id="vClose">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- くるっと写真カメラ -->
+<div id="cam">
+  <div id="camStage">
+    <video id="camVideo" playsinline muted autoplay></video>
+    <img id="camGhost" alt="">
+    <div id="flash"></div>
+    <div class="camTop"><button id="camClose">やめる</button><span id="camCount">0 枚</span><button id="camDone" disabled>完了</button></div>
+    <div class="camGuide">作品を真ん中に入れて、まわりを少しずつ回りながら撮影します（8〜12枚）。うすく見える前の写真を目安にしてください。</div>
+  </div>
+  <div class="camBottom">
+    <div id="camThumbs"></div>
+    <button id="camShutter" aria-label="撮影"></button>
+    <button id="camAlbum">アルバムから</button>
+  </div>
+</div>
+
+<div id="busy"><div><span class="spin"></span><span id="busyText">お待ちください…</span></div></div>
+<div id="toast"></div>
+<div id="loading">美術館をひらいています…</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ======================================================
+   設定（README.md の手順で取得した値を入れてください）
+   ====================================================== */
+const GOOGLE_CLIENT_ID = '';            // 例：1234-abcd.apps.googleusercontent.com
+const BRAND = '';                       // 入口の看板に小さく出す名前（例：整理収納アドバイザー ○○）
+
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const GAPI = (window.OMOIDE_TEST && window.OMOIDE_TEST.gapi) || 'https://www.googleapis.com';
+const GAUTH = (window.OMOIDE_TEST && window.OMOIDE_TEST.auth) || 'https://accounts.google.com/o/oauth2/v2/auth';
+const ROOT_NAME = 'おもいで美術館';
+
+const $ = id => document.getElementById(id);
+const toast = (msg, ms=2800) => { const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'), ms); };
+const busy = (on, text='お待ちください…') => { $('busyText').textContent=text; $('busy').classList.toggle('show', on); };
+const show = (id,on=true) => $(id).classList.toggle('show', on);
+const today = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const fmtDate = s => { if(!s) return ''; const [y,m,d]=s.split('-'); return `${y}年${+m}月${+d}日`; };
+const lsGet = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
+const lsSet = (k,v) => { try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(e){} };
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => 'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const isInApp = /Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent);
+
+/* ======================================================
+   Google ログイン（リダイレクト方式：iPhoneのホーム画面アプリでも動く）
+   ====================================================== */
+const auth = {
+  token: lsGet('omoide.token'),
+  exp: Number(lsGet('omoide.exp')||0),
+  email: lsGet('omoide.email') || '',
+  get signedIn(){ return lsGet('omoide.signedIn')==='1'; },
+  get valid(){ return !!this.token && Date.now() < this.exp - 60000; },
+};
+function startLogin(silent){
+  if(!GOOGLE_CLIENT_ID){ toast('アプリの設定（GOOGLE_CLIENT_ID）がまだです',4000); return; }
+  if(isInApp){ show('inappSheet'); return; }
+  const st = Math.random().toString(36).slice(2);
+  try{ sessionStorage.setItem('omoide.oauthState', st); sessionStorage.setItem('omoide.oauthSilent', silent?'1':'0'); }catch(e){}
+  const p = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: location.origin + location.pathname,
+    response_type: 'token',
+    scope: DRIVE_SCOPE + ' openid email',
+    include_granted_scopes: 'true',
+    state: st,
+    prompt: silent ? 'none' : 'select_account',
+  });
+  if(auth.email) p.set('login_hint', auth.email);
+  location.assign(GAUTH + '?' + p.toString());
+}
+// リダイレクトから戻ってきたときの処理。戻り値：'ok' | 'silent-failed' | 'denied' | 'scope' | null
+function handleRedirect(){
+  if(!location.hash || location.hash.length<2) return null;
+  const h = new URLSearchParams(location.hash.slice(1));
+  if(!h.has('access_token') && !h.has('error')) return null;
+  let st=null, silent=false; try{ st=sessionStorage.getItem('omoide.oauthState'); silent=sessionStorage.getItem('omoide.oauthSilent')==='1'; sessionStorage.removeItem('omoide.oauthState'); }catch(e){}
+  history.replaceState(null, '', location.pathname + location.search);
+  if(!st || h.get('state')!==st) return null;
+  if(h.get('error')) return silent ? 'silent-failed' : 'denied';
+  const scope = h.get('scope')||'';
+  if(!scope.includes('drive.file')) return 'scope';
+  auth.token = h.get('access_token');
+  auth.exp = Date.now() + Number(h.get('expires_in')||3600)*1000;
+  lsSet('omoide.token', auth.token); lsSet('omoide.exp', String(auth.exp)); lsSet('omoide.signedIn','1');
+  return 'ok';
+}
+function dropToken(){ auth.token=null; auth.exp=0; lsSet('omoide.token',null); lsSet('omoide.exp',null); }
+
+/* ---------------- Google ドライブ API ---------------- */
+class AuthError extends Error {}
+async function gfetch(path, opt={}){
+  if(!auth.valid) throw new AuthError('expired');
+  let res;
+  try{ res = await fetch(GAPI + path, { ...opt, headers:{ Authorization:'Bearer '+auth.token, ...(opt.headers||{}) } }); }
+  catch(e){ throw new Error('network'); }
+  if(res.status===401){ dropToken(); throw new AuthError('expired'); }
+  if(!res.ok){ let m=''; try{ m=(await res.json()).error.message; }catch(e){} throw new Error(`drive ${res.status} ${m}`); }
+  return res;
+}
+const gjson = async (path, opt) => (await gfetch(path, opt)).json();
+const qs = o => new URLSearchParams(o).toString();
+
+const drive = {
+  folderId: lsGet('omoide.folder'),
+  indexId: lsGet('omoide.index'),
+  async findOne(q){
+    const r = await gjson('/drive/v3/files?'+qs({ q, fields:'files(id,name)', spaces:'drive', pageSize:'10' }));
+    return (r.files||[])[0] || null;
+  },
+  async ensure(){
+    if(!auth.email){
+      try{ const u=await gjson('/oauth2/v3/userinfo'); auth.email=u.email||''; lsSet('omoide.email',auth.email); }catch(e){ if(e instanceof AuthError) throw e; }
+    }
+    if(!this.folderId){
+      let f = await this.findOne(`mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='omoide' and value='root' }`);
+      if(!f) f = await gjson('/drive/v3/files?fields=id', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name: ROOT_NAME, mimeType:'application/vnd.google-apps.folder', appProperties:{omoide:'root'} }) });
+      this.folderId=f.id; lsSet('omoide.folder', f.id);
+    }
+    if(!this.indexId){
+      let f = await this.findOne(`'${this.folderId}' in parents and trashed=false and appProperties has { key='omoide' and value='index' }`);
+      if(!f) f = await this.upload(new Blob([JSON.stringify({version:1,name:'',items:[]})],{type:'application/json'}), '美術館のデータ（消さないでください）.json', 'index');
+      this.indexId=f.id; lsSet('omoide.index', f.id);
+    }
+  },
+  async upload(blob, name, kind='file'){
+    const meta = { name, parents:[this.folderId], appProperties:{ omoide: kind } };
+    const fd = new FormData();
+    fd.append('metadata', new Blob([JSON.stringify(meta)], {type:'application/json'}));
+    fd.append('file', blob);
+    return gjson('/upload/drive/v3/files?uploadType=multipart&fields=id', { method:'POST', body:fd });
+  },
+  async download(id){ return (await gfetch(`/drive/v3/files/${encodeURIComponent(id)}?alt=media`)).blob(); },
+  async trash(id){ try{ await gfetch(`/drive/v3/files/${encodeURIComponent(id)}?fields=id`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({trashed:true}) }); }catch(e){ if(e instanceof AuthError) throw e; } },
+  async readIndex(){
+    const t = await (await gfetch(`/drive/v3/files/${this.indexId}?alt=media`)).text();
+    let d; try{ d=JSON.parse(t); }catch(e){ d=null; }
+    if(!d || !Array.isArray(d.items)) d={version:1,name:'',items:[]};
+    return d;
+  },
+  async writeIndex(d){
+    await gfetch(`/upload/drive/v3/files/${this.indexId}?uploadType=media&fields=id`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d) });
+  },
+  // 最新を読み直してから変更して保存（別の端末での変更を消さないため）
+  async mutate(fn){ const d=await this.readIndex(); fn(d); await this.writeIndex(d); return d; },
+  reset(){ this.folderId=null; this.indexId=null; lsSet('omoide.folder',null); lsSet('omoide.index',null); }
+};
+
+/* ---------------- 端末内の保存（キャッシュと未送信の作品） ---------------- */
+const idb = { db:null };
+function openDB(){
+  return new Promise(res=>{
+    try{
+      const r=indexedDB.open('omoide-museum',2);
+      r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains('files')) db.createObjectStore('files'); if(!db.objectStoreNames.contains('outbox')) db.createObjectStore('outbox',{keyPath:'id'}); };
+      r.onsuccess=()=>{ idb.db=r.result; res(); }; r.onerror=()=>res();
+    }catch(e){ res(); }
+  });
+}
+const mem = { files:new Map(), outbox:new Map() };
+function idbReq(store, mode, fn){
+  return new Promise(res=>{ if(!idb.db) return res(null);
+    try{ const tx=idb.db.transaction(store,mode); const q=fn(tx.objectStore(store)); tx.oncomplete=()=>res(q&&q.result); tx.onerror=()=>res(null); }catch(e){ res(null); } });
+}
+async function cacheGet(id){ if(mem.files.has(id)) return mem.files.get(id); const b=await idbReq('files','readonly',s=>s.get(id)); if(b) mem.files.set(id,b); return b||null; }
+function cachePut(id, blob){ mem.files.set(id,blob); idbReq('files','readwrite',s=>s.put(blob,id)); }
+async function outboxAll(){ const r=await idbReq('outbox','readonly',s=>s.getAll()); return r || [...mem.outbox.values()]; }
+async function outboxPut(it){ mem.outbox.set(it.id,it); await idbReq('outbox','readwrite',s=>s.put(it)); }
+async function outboxDel(id){ mem.outbox.delete(id); await idbReq('outbox','readwrite',s=>s.delete(id)); }
+async function clearLocal(){ mem.files.clear(); mem.outbox.clear(); await idbReq('files','readwrite',s=>s.clear()); await idbReq('outbox','readwrite',s=>s.clear()); }
+
+async function getBlobs(item){
+  if(item.local) return item.type==='spin' ? item.blobs : [item.blob];
+  const ids = item.type==='spin' ? item.fileIds : [item.fileId];
+  const out=[];
+  for(const id of ids){
+    let b=await cacheGet(id);
+    if(!b){ b=await drive.download(id); cachePut(id,b); }
+    out.push(b);
+  }
+  return out;
+}
+
+/* ---------------- 見本の作品 ---------------- */
+function crayon(ctx){ ctx.lineCap='round'; ctx.lineJoin='round'; }
+function sampleFamily(){
+  const c=document.createElement('canvas'); c.width=800; c.height=600; const x=c.getContext('2d'); crayon(x);
+  x.fillStyle='#fffaf0'; x.fillRect(0,0,800,600);
+  x.fillStyle='#8fd16a'; x.beginPath(); x.moveTo(0,470); x.quadraticCurveTo(400,430,800,475); x.lineTo(800,600); x.lineTo(0,600); x.fill();
+  x.fillStyle='#ffd23f'; x.beginPath(); x.arc(680,110,55,0,7); x.fill();
+  x.strokeStyle='#ffb000'; x.lineWidth=8; for(let i=0;i<10;i++){const a=i*Math.PI/5; x.beginPath(); x.moveTo(680+Math.cos(a)*72,110+Math.sin(a)*72); x.lineTo(680+Math.cos(a)*100,110+Math.sin(a)*100); x.stroke();}
+  x.fillStyle='#f4a259'; x.fillRect(90,260,220,200); x.fillStyle='#e63946'; x.beginPath(); x.moveTo(70,265); x.lineTo(200,150); x.lineTo(330,265); x.fill();
+  x.fillStyle='#7a4b2a'; x.fillRect(175,360,60,100); x.fillStyle='#9bd4ff'; x.fillRect(115,295,50,45); x.fillRect(245,295,50,45);
+  const person=(cx,h,col)=>{ x.strokeStyle='#333'; x.lineWidth=7; x.fillStyle='#ffe0bd';
+    x.beginPath(); x.arc(cx,470-h,28,0,7); x.fill(); x.stroke();
+    x.strokeStyle=col; x.lineWidth=10; x.beginPath(); x.moveTo(cx,470-h+28); x.lineTo(cx,470-h*0.35); x.stroke();
+    x.beginPath(); x.moveTo(cx-35,470-h*0.7); x.lineTo(cx+35,470-h*0.7); x.stroke();
+    x.strokeStyle='#333'; x.lineWidth=7; x.beginPath(); x.moveTo(cx,470-h*0.35); x.lineTo(cx-22,480); x.moveTo(cx,470-h*0.35); x.lineTo(cx+22,480); x.stroke();
+    x.fillStyle='#333'; x.beginPath(); x.arc(cx-9,470-h-4,3.5,0,7); x.arc(cx+9,470-h-4,3.5,0,7); x.fill();
+    x.lineWidth=4; x.beginPath(); x.arc(cx,470-h+4,10,0.2,Math.PI-0.2); x.stroke(); };
+  person(420,210,'#3a86ff'); person(520,190,'#ff006e'); person(610,130,'#fb5607');
+  x.fillStyle='#333'; x.font='bold 40px "Zen Maru Gothic",sans-serif'; x.fillText('かぞく',40,70);
+  return c;
+}
+function sampleFlower(){
+  const c=document.createElement('canvas'); c.width=600; c.height=800; const x=c.getContext('2d'); crayon(x);
+  x.fillStyle='#bfe3ff'; x.fillRect(0,0,600,800);
+  x.strokeStyle='#3c9a3c'; x.lineWidth=22; x.beginPath(); x.moveTo(300,360); x.quadraticCurveTo(320,580,300,800); x.stroke();
+  x.fillStyle='#52b552'; x.beginPath(); x.ellipse(220,560,80,32,-0.5,0,7); x.fill(); x.beginPath(); x.ellipse(385,630,80,32,0.5,0,7); x.fill();
+  x.fillStyle='#ffcc00'; for(let i=0;i<14;i++){ const a=i*Math.PI*2/14; x.save(); x.translate(300,300); x.rotate(a); x.beginPath(); x.ellipse(0,-135,38,80,0,0,7); x.fill(); x.restore(); }
+  x.fillStyle='#6b3e1e'; x.beginPath(); x.arc(300,300,95,0,7); x.fill();
+  x.fillStyle='#4a2810'; for(let i=0;i<40;i++){ const r=Math.sqrt(i/40)*85, a=i*2.4; x.beginPath(); x.arc(300+Math.cos(a)*r,300+Math.sin(a)*r,6,0,7); x.fill(); }
+  return c;
+}
+function sampleRobot(){
+  const g=new THREE.Group();
+  const card=new THREE.MeshStandardMaterial({color:0xc9a477,roughness:.95});
+  const card2=new THREE.MeshStandardMaterial({color:0xb38f5f,roughness:.95});
+  const black=new THREE.MeshStandardMaterial({color:0x222222});
+  const red=new THREE.MeshStandardMaterial({color:0xe63946});
+  const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); g.add(m); return m; };
+  add(new THREE.BoxGeometry(.32,.36,.22),card,0,.3,0);
+  add(new THREE.BoxGeometry(.26,.2,.2),card2,0,.6,0);
+  add(new THREE.CylinderGeometry(.03,.03,.02,16),black,-.06,.62,.105).rotation.x=Math.PI/2;
+  add(new THREE.CylinderGeometry(.03,.03,.02,16),black,.06,.62,.105).rotation.x=Math.PI/2;
+  add(new THREE.BoxGeometry(.1,.02,.01),red,0,.55,.103);
+  add(new THREE.CylinderGeometry(.008,.008,.12),black,0,.76,0);
+  add(new THREE.SphereGeometry(.025,16,12),red,0,.83,0);
+  add(new THREE.BoxGeometry(.07,.26,.07),card2,-.21,.32,0).rotation.z=.25;
+  add(new THREE.BoxGeometry(.07,.26,.07),card2,.21,.32,0).rotation.z=-.25;
+  add(new THREE.BoxGeometry(.09,.13,.1),card2,-.08,.065,0);
+  add(new THREE.BoxGeometry(.09,.13,.1),card2,.08,.065,0);
+  [[0x3a86ff,-.07],[0xffcc00,0],[0xe63946,.07]].forEach(([c,x])=>{ add(new THREE.CylinderGeometry(.025,.025,.015,16),new THREE.MeshStandardMaterial({color:c}),x,.34,.11).rotation.x=Math.PI/2; });
+  return g;
+}
+const SAMPLES = [
+  { id:'sample-1', type:'photo', title:'かぞくの絵', date:'2019-05-12', sample:true, canvas:sampleFamily, memo:'年中のときに描いた家族の絵。' },
+  { id:'sample-2', type:'photo', title:'ひまわり', date:'2020-08-03', sample:true, canvas:sampleFlower },
+  { id:'sample-3', type:'model', title:'ダンボールロボ', date:'2021-02-20', sample:true, build:sampleRobot, memo:'大きすぎて置き場所に困っていたけど、ここならずっと飾れる。' },
+];
+
+/* ---------------- 3D シーン ---------------- */
+const app=$('app');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+app.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xf3ede4);
+scene.fog=new THREE.Fog(0xf3ede4,14,40);
+const camera=new THREE.PerspectiveCamera(66,1,0.05,100);
+camera.rotation.order='YXZ';
+scene.add(new THREE.HemisphereLight(0xfff6ea,0x9c8a74,1.5));
+const sun=new THREE.DirectionalLight(0xffffff,1.1); sun.position.set(2,6,4); scene.add(sun);
+
+const W=7, H=3.4, SP=3.0, EYE=1.6;
+let L=12;
+const roomGroup=new THREE.Group(), itemsGroup=new THREE.Group();
+scene.add(roomGroup, itemsGroup);
+let floorMesh=null, pickables=[], spinners=[], spinCards=[];
+const anchors=new Map();
+
+function woodTexture(){
+  const c=document.createElement('canvas'); c.width=512; c.height=512; const x=c.getContext('2d');
+  const tones=['#c9a27a','#c29a71','#cfa983','#bf966c','#c7a079'];
+  for(let i=0;i<8;i++){ x.fillStyle=tones[(i*3)%tones.length]; x.fillRect(0,i*64,512,64);
+    const off=(i*137)%512; x.fillStyle='#a57f58'; x.fillRect(off,i*64,3,64);
+    x.globalAlpha=.08; for(let k=0;k<6;k++){ x.fillStyle='#6b4a2c'; x.fillRect(0,i*64+8+k*9,512,1.5);} x.globalAlpha=1;
+    x.fillStyle='#9c7650'; x.fillRect(0,i*64+62,512,2); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t;
+}
+const woodTex=woodTexture();
+const wallMat=new THREE.MeshStandardMaterial({color:0xf7f1e8,roughness:1,emissive:0x3a332b,emissiveIntensity:.55});
+const ceilMat=new THREE.MeshBasicMaterial({color:0xf1ebe2,toneMapped:false});
+const baseMat=new THREE.MeshStandardMaterial({color:0x8a6a4c,roughness:.8});
+
+function textTexture(lines, w=512, h=160, opts={}){
+  const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
+  x.fillStyle=opts.bg||'#fbf8f3'; x.fillRect(0,0,w,h);
+  if(!opts.noBorder){ x.strokeStyle='#d8cbb8'; x.lineWidth=4; x.strokeRect(2,2,w-4,h-4); }
+  x.textAlign='center';
+  lines.forEach(l=>{ x.font=`${l.bold?'700':'500'} ${l.size}px "Zen Maru Gothic",sans-serif`; x.fillStyle=l.color||opts.color||'#3a2e25';
+    let s=l.text; while(x.measureText(s).width>w-30 && s.length>1) s=s.slice(0,-2)+'…'; x.fillText(s,w/2,l.y); });
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
+}
+function plaqueFor(item, w=.46, h=.144){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({toneMapped:false,
+    map:textTexture([{text:item.title||'無題',size:44,y:70,bold:true},{text:fmtDate(item.date),size:30,y:122,color:'#8a7d70'}])}));
+  m.userData.ownMat=true; m.material.userData.ownMap=true; return m;
+}
+function disposeGroup(g){
+  g.traverse(o=>{ if(o.userData.keep) return; if(o.geometry) o.geometry.dispose();
+    if(o.material && o.userData.ownMat){ [].concat(o.material).forEach(m=>{ if(m.map && m.userData.ownMap) m.map.dispose(); m.dispose(); }); } });
+  g.clear();
+}
+
+let museumName='';
+function buildRoom(){
+  disposeGroup(roomGroup);
+  const ft=woodTex.clone(); ft.needsUpdate=true; ft.repeat.set(W/2.2,L/2.2);
+  floorMesh=new THREE.Mesh(new THREE.PlaneGeometry(W,L), new THREE.MeshStandardMaterial({map:ft,roughness:.7}));
+  floorMesh.rotation.x=-Math.PI/2; floorMesh.userData.ownMat=true; roomGroup.add(floorMesh);
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(W,L), ceilMat); ceil.rotation.x=Math.PI/2; ceil.position.y=H; roomGroup.add(ceil);
+  const wall=(w,x,z,ry)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,H), wallMat); m.position.set(x,H/2,z); m.rotation.y=ry; roomGroup.add(m);
+    const b=new THREE.Mesh(new THREE.BoxGeometry(w,.12,.03), baseMat); b.position.set(x,.06,z); b.rotation.y=ry; b.translateZ(.015); roomGroup.add(b); };
+  wall(L,-W/2,0,Math.PI/2); wall(L,W/2,0,-Math.PI/2); wall(W,0,-L/2,0); wall(W,0,L/2,Math.PI);
+  for(let z=-L/2+1.5; z<L/2-1; z+=3){ const p=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.18), new THREE.MeshBasicMaterial({color:0xfffbf0})); p.rotation.x=Math.PI/2; p.position.set(0,H-.01,z); p.userData.ownMat=true; roomGroup.add(p); }
+  const title = museumName ? `${museumName}の おもいで美術館` : 'おもいで美術館';
+  const lines=[{text:title,size:museumName?70:84,y:BRAND?100:118,bold:true}];
+  if(BRAND) lines.push({text:BRAND,size:34,y:180,color:'#9a8571'});
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.74), new THREE.MeshBasicMaterial({map:textTexture(lines,1260,290,{bg:'#f7f1e8',noBorder:true,color:'#7a5a3e'}),toneMapped:false}));
+  sign.position.set(0,2.3,-L/2+.01); sign.userData.ownMat=true; sign.material.userData.ownMap=true; roomGroup.add(sign);
+}
+
+/* 読み込み済みの作品（作品ID単位） */
+const loadedCache=new Map();
+function loadImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
+function makeTex(img){ const t=new THREE.Texture(img); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; t.needsUpdate=true; return t; }
+const gltfLoader=new GLTFLoader();
+function parseGLB(buf){ return new Promise((res,rej)=>{ try{ gltfLoader.parse(buf,'',g=>res(g.scene),e=>rej(e)); }catch(e){ rej(e); } }); }
+async function loadItem(item){
+  if(loadedCache.has(item.id)) return loadedCache.get(item.id);
+  let r;
+  if(item.sample && item.type==='photo'){ const c=item.canvas(); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; r={tex:t,aspect:c.width/c.height,urls:[c.toDataURL('image/jpeg',.9)]}; }
+  else if(item.sample){ r={obj:item.build()}; }
+  else {
+    const blobs=await getBlobs(item);
+    if(item.type==='model'){ r={obj:await parseGLB(await blobs[0].arrayBuffer())}; }
+    else {
+      const urls=blobs.map(b=>URL.createObjectURL(b));
+      const imgs=await Promise.all(urls.map(loadImage));
+      r={urls, texs:imgs.map(makeTex), tex:null, aspect:imgs[0].naturalWidth/imgs[0].naturalHeight};
+      r.tex=r.texs[0];
+    }
+  }
+  loadedCache.set(item.id,r); return r;
+}
+function forget(id){ const r=loadedCache.get(id); if(r&&r.urls) r.urls.forEach(u=>{ if(u.startsWith('blob:')) URL.revokeObjectURL(u); }); loadedCache.delete(id); }
+function normalized(obj, size){
+  const holder=new THREE.Group(); const o=obj.clone(true);
+  const box=new THREE.Box3().setFromObject(o); const s=box.getSize(new THREE.Vector3()); const c=box.getCenter(new THREE.Vector3());
+  const k=size/Math.max(s.x,s.y,s.z,1e-6);
+  o.position.sub(new THREE.Vector3(c.x, box.min.y, c.z)); const inner=new THREE.Group(); inner.add(o); inner.scale.setScalar(k);
+  holder.add(inner); holder.traverse(n=>{ n.userData.keep=true; }); return holder;
+}
+function spinCard(spin){
+  const g=new THREE.Group();
+  let h=.62, w=h*spin.aspect; if(w>.62){ w=.62; h=w/spin.aspect; }
+  const back=new THREE.Mesh(new THREE.PlaneGeometry(w+.05,h+.05), new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false,side:THREE.DoubleSide}));
+  back.position.y=h/2+.03; back.userData.ownMat=true;
+  const pic=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({map:spin.texs[0],toneMapped:false}));
+  pic.position.set(0,h/2+.03,.002); pic.userData.ownMat=true;
+  const stand=new THREE.Mesh(new THREE.BoxGeometry(.16,.03,.1), new THREE.MeshStandardMaterial({color:0x4a3526})); stand.position.y=.015; stand.userData.ownMat=true;
+  g.add(back,pic,stand);
+  g.userData.spin={pic, texs:spin.texs, idx:0};
+  return g;
+}
+
+let building=Promise.resolve();
+function buildGallery(items){ building = building.then(()=>doBuild(items)).catch(e=>console.error(e)); return building; }
+async function doBuild(items){
+  const photos=items.filter(i=>i.type==='photo'), stands=items.filter(i=>i.type==='model'||i.type==='spin');
+  const rows=Math.max(Math.ceil(photos.length/2), stands.length, 1);
+  L=Math.max(12, 5+rows*SP);
+  const loaded=new Map();
+  await Promise.all(items.map(async it=>{ try{ loaded.set(it.id, await loadItem(it)); }catch(e){ if(e instanceof AuthError) needAuth(); console.warn('load failed', it.id, e); } }));
+
+  buildRoom();
+  disposeGroup(itemsGroup); pickables=[floorMesh]; spinners=[]; spinCards=[]; anchors.clear();
+
+  photos.forEach((item,i)=>{
+    const t=loaded.get(item.id); if(!t) return;
+    const side = i%2===0 ? -1 : 1, row=Math.floor(i/2);
+    const z = L/2-3-row*SP;
+    const maxW=1.5, maxH=1.2; let w=maxW, h=w/t.aspect; if(h>maxH){ h=maxH; w=h*t.aspect; }
+    const g=new THREE.Group();
+    const frame=new THREE.Mesh(new THREE.BoxGeometry(w+.18,h+.18,.06), new THREE.MeshStandardMaterial({color:0x4a3526,roughness:.5}));
+    frame.position.z=.03; frame.userData.ownMat=true;
+    const mat=new THREE.Mesh(new THREE.PlaneGeometry(w+.1,h+.1), new THREE.MeshBasicMaterial({color:0xfdfbf7,toneMapped:false})); mat.position.z=.061; mat.userData.ownMat=true;
+    const pic=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({map:t.tex,toneMapped:false})); pic.position.z=.063; pic.userData.ownMat=true;
+    const plaque=plaqueFor(item); plaque.position.set(w/2-.13, -h/2-.27, .01);
+    g.add(frame,mat,pic,plaque);
+    [frame,mat,pic,plaque].forEach(m=>{ m.userData.item=item; pickables.push(m); });
+    g.position.set(side*(W/2-.001), 1.65, z);
+    g.rotation.y = side<0 ? Math.PI/2 : -Math.PI/2;
+    itemsGroup.add(g);
+    anchors.set(item.id,{pos:new THREE.Vector3(side*W/2,1.6,z), normal:new THREE.Vector3(-side,0,0), dist:2.4});
+  });
+
+  stands.forEach((item,j)=>{
+    const data=loaded.get(item.id); if(!data) return;
+    const z = L/2-3-SP/2-j*SP;
+    const g=new THREE.Group(); g.position.set(0,0,z);
+    const ped=new THREE.Mesh(new THREE.BoxGeometry(.6,1,.6), new THREE.MeshStandardMaterial({color:0xfdfaf5,roughness:.9})); ped.position.y=.5; ped.userData.ownMat=true;
+    const top=new THREE.Mesh(new THREE.BoxGeometry(.66,.04,.66), new THREE.MeshStandardMaterial({color:0x4a3526,roughness:.5})); top.position.y=1.02; top.userData.ownMat=true;
+    const plaque=plaqueFor(item,.44,.138); plaque.position.set(0,.78,.301);
+    let holder;
+    if(item.type==='spin'){ holder=spinCard(data); spinCards.push(holder); }
+    else { holder=normalized(data.obj,.55); spinners.push(holder); }
+    holder.position.y=1.04;
+    g.add(ped,top,plaque,holder);
+    [ped,top,plaque].forEach(m=>{ m.userData.item=item; pickables.push(m); });
+    holder.traverse(n=>{ if(n.isMesh){ n.userData.item=item; pickables.push(n); } });
+    itemsGroup.add(g);
+    anchors.set(item.id,{pos:new THREE.Vector3(0,1.3,z), normal:new THREE.Vector3(0,0,1), dist:1.8});
+  });
+
+  const real=items.filter(i=>!i.sample).length;
+  $('count').textContent = real ? `${real} 点` : (auth.signedIn ? 'まだ作品がありません' : '見本');
+}
+
+/* ---------------- 移動・視点操作 ---------------- */
+const pos=new THREE.Vector3(0,EYE,0);
+let yaw=0, pitch=-0.05, goal=null, goalYaw=null;
+function clampPos(v){ v.x=THREE.MathUtils.clamp(v.x,-W/2+.5,W/2-.5); v.z=THREE.MathUtils.clamp(v.z,-L/2+.5,L/2-.5); v.y=EYE; return v; }
+function resetView(){ pos.set(0,EYE,L/2-1.2); yaw=0; pitch=-0.05; goal=null; goalYaw=null; setZoom(1); }
+function visit(id){
+  const a=anchors.get(id); if(!a) return;
+  goal=clampPos(a.pos.clone().addScaledVector(a.normal,a.dist)); goalYaw=Math.atan2(a.normal.x,a.normal.z); setZoom(1);
+  hideHint();
+}
+const pointers=new Map(); let drag=null, pinch=null, pinched=false;
+let zoom=1, baseFov=66;
+const ZMIN=0.75, ZMAX=3.5;
+function setZoom(z){ zoom=THREE.MathUtils.clamp(z,ZMIN,ZMAX); camera.fov=baseFov/zoom; camera.updateProjectionMatrix(); }
+const pdist=()=>{ const [a,b]=[...pointers.values()]; return Math.hypot(a.x-b.x,a.y-b.y)||1; };
+const el=renderer.domElement;
+el.addEventListener('pointerdown',e=>{
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  try{el.setPointerCapture(e.pointerId);}catch(_){}
+  if(pointers.size===1){ drag={x:e.clientX,y:e.clientY,moved:0}; pinched=false; }
+  else if(pointers.size===2){ drag=null; pinched=true; pinch={d:pdist(), z:zoom}; hideHint(); }
+});
+el.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch && pointers.size===2){ setZoom(pinch.z*pdist()/pinch.d); return; }
+  if(!drag) return;
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+  drag.moved+=Math.abs(dx)+Math.abs(dy);
+  if(drag.moved>6){ const s=1/zoom; yaw+=dx*0.0045*s; pitch=THREE.MathUtils.clamp(pitch+dy*0.0035*s,-1.1,1.1); goalYaw=null; hideHint(); }
+});
+const endPtr=e=>{
+  if(drag && pointers.size===1 && drag.moved<=6 && !pinched) tap(e.clientX,e.clientY);
+  pointers.delete(e.pointerId);
+  if(pointers.size<2) pinch=null;
+  if(pointers.size===1){ const p=[...pointers.values()][0]; drag={x:p.x,y:p.y,moved:99}; }
+  if(pointers.size===0) drag=null;
+};
+el.addEventListener('pointerup',endPtr);
+el.addEventListener('pointercancel',e=>{ pointers.delete(e.pointerId); if(pointers.size<2) pinch=null; if(pointers.size===0) drag=null; });
+el.addEventListener('wheel',e=>{ e.preventDefault(); setZoom(zoom*Math.exp(-e.deltaY*0.0015)); hideHint(); },{passive:false});
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function tap(cx,cy){
+  const r=el.getBoundingClientRect();
+  ndc.set(((cx-r.left)/r.width)*2-1, -((cy-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObjects(pickables,false)[0];
+  if(!hit) return;
+  if(hit.object.userData.item){ openViewer(hit.object.userData.item); return; }
+  if(hit.object===floorMesh){ goal=clampPos(hit.point.clone()); goalYaw=null; hideHint(); }
+}
+const keys=new Set();
+addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return; keys.add(e.key.toLowerCase()); });
+addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+let hintHidden=false;
+function hideHint(){ if(hintHidden) return; hintHidden=true; $('hint').classList.add('hide'); }
+setTimeout(hideHint,7000);
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; baseFov = w<h ? 72 : 60; setZoom(zoom); }
+addEventListener('resize',resize); resize();
+
+const clock=new THREE.Clock(); const wp=new THREE.Vector3();
+function loop(){
+  const dt=Math.min(clock.getDelta(),.05);
+  const f=(keys.has('w')||keys.has('arrowup'))-(keys.has('s')||keys.has('arrowdown'));
+  const t=(keys.has('a')||keys.has('arrowleft'))-(keys.has('d')||keys.has('arrowright'));
+  if(t){ yaw+=t*dt*1.8; goalYaw=null; }
+  if(f){ goal=null; pos.x-=Math.sin(yaw)*f*dt*2.6; pos.z-=Math.cos(yaw)*f*dt*2.6; clampPos(pos); }
+  if(goal){ const d=goal.clone().sub(pos); if(d.length()<.02) goal=null; else pos.addScaledVector(d, Math.min(1, dt*3.2)); }
+  if(goalYaw!==null){ let dy=goalYaw-yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); yaw+=dy*Math.min(1,dt*4); pitch+=(-0.05-pitch)*Math.min(1,dt*4); if(Math.abs(dy)<.002) goalYaw=null; }
+  camera.position.copy(pos); camera.rotation.set(pitch,yaw,0);
+  spinners.forEach(s=>s.rotation.y+=dt*.45);
+  const now=performance.now()/1000;
+  spinCards.forEach(c=>{
+    c.getWorldPosition(wp);
+    const ang=Math.atan2(pos.x-wp.x, pos.z-wp.z);
+    c.rotation.y=ang;
+    const sp=c.userData.spin, n=sp.texs.length;
+    let a=((ang/(Math.PI*2)) + now*.07) % 1; if(a<0) a+=1;
+    const idx=Math.floor(a*n)%n;
+    if(idx!==sp.idx){ sp.idx=idx; sp.pic.material.map=sp.texs[idx]; sp.pic.material.needsUpdate=true; }
+  });
+  renderer.render(scene,camera);
+  if(mini){ mini.controls.update(); mini.renderer.render(mini.scene,mini.camera); }
+  requestAnimationFrame(loop);
+}
+
+/* ======================================================
+   データ（ドライブ上の作品 ＋ まだ送れていない作品）
+   ====================================================== */
+let remote = { name:'', items:[] };
+let pendingItems = [];
+let lastSig='';
+function loadLocalIndex(){ try{ const d=JSON.parse(lsGet('omoide.cache')||'null'); if(d&&Array.isArray(d.items)) remote=d; }catch(e){} }
+function saveLocalIndex(){ lsSet('omoide.cache', JSON.stringify(remote)); }
+function allItems(){
+  if(!auth.signedIn) return SAMPLES;
+  const ids=new Set(remote.items.map(i=>i.id));
+  return remote.items.concat(pendingItems.filter(p=>!ids.has(p.id))).sort((a,b)=>(a.created||0)-(b.created||0));
+}
+async function render(force=false){
+  museumName = remote.name || '';
+  setHeader();
+  const list=allItems();
+  const s=JSON.stringify([museumName, list.map(i=>[i.id,i.title,i.date,!!i.local])]);
+  if(!force && s===lastSig) return;
+  lastSig=s;
+  const loadingMany = list.filter(i=>!i.sample && !loadedCache.has(i.id)).length;
+  const pill=$('syncPill');
+  if(loadingMany && !pill.classList.contains('show')){ pill.classList.add('show'); pill.querySelector('.spin').style.display=''; pill.onclick=null; $('syncText').textContent='作品を読み込み中…'; pill.dataset.loading='1'; }
+  await buildGallery(list);
+  if(pill.dataset.loading==='1'){ pill.dataset.loading=''; if($('syncText').textContent==='作品を読み込み中…') pill.classList.remove('show'); }
+  clampPos(pos);
+}
+function setHeader(){
+  $('museumName').textContent = auth.signedIn && museumName ? `${museumName}の美術館` : 'おもいで美術館';
+  $('bar').classList.toggle('hidden', !auth.signedIn);
+}
+
+let needAuthShown=false;
+function needAuth(){
+  if(needAuthShown) return; needAuthShown=true;
+  const pill=$('syncPill'); pill.classList.add('show'); pill.querySelector('.spin').style.display='none';
+  $('syncText').textContent = pendingItems.length ? 'タップしてドライブに保存' : 'タップしてGoogleにつなぎ直す';
+  pill.onclick=()=>startLogin(false);
+}
+
+// ドライブと同期：未送信の作品を送り、最新の一覧を受け取る
+let syncing=null;
+function sync(){ if(!syncing) syncing=doSync().finally(()=>{ syncing=null; }); return syncing; }
+async function doSync(){
+  if(!auth.signedIn) return;
+  if(!auth.valid){ needAuth(); return; }
+  const pill=$('syncPill');
+  try{
+    await drive.ensure();
+    pendingItems = await outboxAll();
+    if(pendingItems.length){
+      pill.classList.add('show'); pill.querySelector('.spin').style.display=''; pill.onclick=null;
+      for(const p of pendingItems.slice()){
+        $('syncText').textContent=`ドライブに保存中…（残り${pendingItems.length}点）`;
+        const blobs = p.type==='spin' ? p.blobs : [p.blob];
+        const ext = p.type==='model' ? '.glb' : '.jpg';
+        const base = (p.title||'無題').replace(/[\\/:*?"<>|]/g,'').slice(0,20) + '_' + (p.date||today());
+        const ids=[];
+        for(let i=0;i<blobs.length;i++){
+          const f=await drive.upload(blobs[i], base + (blobs.length>1?`_${String(i+1).padStart(2,'0')}`:'') + ext);
+          ids.push(f.id); cachePut(f.id, blobs[i]);
+        }
+        const item={ id:p.id, type:p.type, title:p.title, date:p.date, memo:p.memo||'', created:p.created };
+        if(p.type==='spin') item.fileIds=ids; else item.fileId=ids[0];
+        remote = await drive.mutate(d=>{ d.items=d.items.filter(x=>x.id!==item.id); d.items.push(item); });
+        saveLocalIndex();
+        await outboxDel(p.id);
+        pendingItems = pendingItems.filter(x=>x.id!==p.id);
+      }
+    } else {
+      remote = await drive.readIndex(); saveLocalIndex();
+    }
+    pill.classList.remove('show'); needAuthShown=false;
+    await render();
+  }catch(e){
+    if(e instanceof AuthError){ needAuth(); return; }
+    if(/drive 404/.test(String(e.message))){ drive.reset(); }  // フォルダが消された等
+    pill.classList.remove('show');
+    console.warn(e);
+    toast(String(e.message)==='network' ? 'オフラインです。つながったら保存します' : 'ドライブとの同期に失敗しました',3600);
+  }
+}
+addEventListener('online', ()=>sync());
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && auth.signedIn && auth.valid) sync(); });
+
+/* ---------------- 名前・メニュー ---------------- */
+function openName(){
+  $('inName').value=remote.name||''; updateNamePreview(); show('nameSheet'); setTimeout(()=>$('inName').focus(),100);
+}
+function updateNamePreview(){ const v=$('inName').value.trim(); $('namePreview').textContent = v ? `入口の看板：「${v}の おもいで美術館」` : ''; }
+$('inName').oninput=updateNamePreview;
+$('nameSkip').onclick=()=>{ show('nameSheet',false); lsSet('omoide.nameAsked','1'); };
+$('nameGo').onclick=async()=>{
+  const v=$('inName').value.trim(); if(!v){ $('inName').focus(); return; }
+  lsSet('omoide.nameAsked','1');
+  if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+  busy(true,'保存しています…');
+  try{ remote = await drive.mutate(d=>{ d.name=v; }); saveLocalIndex(); show('nameSheet',false); await render(); toast('名前をつけました'); }
+  catch(e){ if(e instanceof AuthError) needAuth(); toast('保存できませんでした'); }
+  finally{ busy(false); }
+};
+$('openMenu').onclick=()=>{
+  if(!auth.signedIn){ show('welcomeSheet'); return; }
+  $('menuAccount').textContent = auth.email ? `${auth.email} のGoogleドライブに保存しています` : 'Googleドライブに保存しています';
+  $('menuNameNow').textContent = remote.name ? `いまの名前：${remote.name}` : 'まだ名前がありません';
+  const md=$('menuDrive'); if(drive.folderId){ md.style.display=''; md.href=`https://drive.google.com/drive/folders/${drive.folderId}`; } else md.style.display='none';
+  show('menuSheet');
+};
+$('menuClose').onclick=()=>show('menuSheet',false);
+$('menuRename').onclick=()=>{ show('menuSheet',false); openName(); };
+$('menuHome').onclick=()=>show('homeSheet');
+$('homeClose').onclick=()=>show('homeSheet',false);
+$('menuLogout').onclick=async()=>{
+  const out=await outboxAll();
+  if(out.length && !confirmTwice($('menuLogout'), `まだドライブに保存できていない作品が${out.length}点あります。ログアウトすると消えます。もう一度押すとログアウト`)) return;
+  if(!out.length && !confirmTwice($('menuLogout'), 'もう一度押すとログアウトします')) return;
+  busy(true,'ログアウトしています…');
+  try{ if(auth.token) await fetch('https://oauth2.googleapis.com/revoke?token='+encodeURIComponent(auth.token),{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'}}).catch(()=>{}); }catch(e){}
+  ['omoide.token','omoide.exp','omoide.email','omoide.signedIn','omoide.folder','omoide.index','omoide.cache','omoide.nameAsked'].forEach(k=>lsSet(k,null));
+  await clearLocal();
+  location.replace(location.pathname);
+};
+function confirmTwice(btn, msg){
+  if(btn.dataset.armed==='1'){ btn.dataset.armed=''; return true; }
+  btn.dataset.armed='1'; const b=btn.querySelector('b'); const old=b.textContent; b.textContent=msg;
+  setTimeout(()=>{ btn.dataset.armed=''; b.textContent=old; }, 5000);
+  return false;
+}
+$('loginBtn').onclick=()=>startLogin(false);
+$('welcomeLater').onclick=()=>show('welcomeSheet',false);
+$('inappClose').onclick=()=>show('inappSheet',false);
+
+/* ---------------- 作品ビューア ---------------- */
+let mini=null, current=null, spinView=null;
+function makeMini(container, obj){
+  const r=new THREE.WebGLRenderer({antialias:true,alpha:true}); r.setPixelRatio(Math.min(devicePixelRatio,2)); r.outputColorSpace=THREE.SRGBColorSpace; r.toneMapping=THREE.ACESFilmicToneMapping;
+  container.appendChild(r.domElement);
+  const s=new THREE.Scene(); s.add(new THREE.HemisphereLight(0xffffff,0x9c8a74,1.6)); const d=new THREE.DirectionalLight(0xffffff,1.2); d.position.set(2,3,3); s.add(d);
+  const holder=normalized(obj,1); holder.position.y=-.5; s.add(holder);
+  const cam=new THREE.PerspectiveCamera(40,1,.01,50); cam.position.set(0,.3,2.6);
+  const c=new OrbitControls(cam,r.domElement); c.enableDamping=true; c.autoRotate=true; c.autoRotateSpeed=1.6; c.minDistance=1; c.maxDistance=5; c.enablePan=false;
+  const fit=()=>{ const w=container.clientWidth, h=r.domElement.clientHeight||container.clientWidth*.8; r.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); };
+  requestAnimationFrame(fit);
+  return {renderer:r, scene:s, camera:cam, controls:c};
+}
+function closeMini(){ if(!mini) return; mini.controls.dispose(); mini.renderer.dispose(); mini.renderer.domElement.remove(); mini=null; }
+function makeSpinViewer(container, urls){
+  const img=document.createElement('img'); img.src=urls[0]; container.appendChild(img);
+  const badge=document.createElement('div'); badge.className='badge'; badge.textContent='← 指で回せます →'; container.appendChild(badge);
+  urls.forEach(u=>{ const p=new Image(); p.src=u; });
+  const v={idx:0, auto:true, timer:null, start:null};
+  const setIdx=i=>{ v.idx=((i%urls.length)+urls.length)%urls.length; img.src=urls[v.idx]; };
+  v.timer=setInterval(()=>{ if(v.auto) setIdx(v.idx+1); }, 220);
+  container.onpointerdown=e=>{ v.auto=false; badge.style.display='none'; v.start={x:e.clientX, idx:v.idx}; try{container.setPointerCapture(e.pointerId);}catch(_){} };
+  container.onpointermove=e=>{ if(!v.start) return; setIdx(v.start.idx + Math.round((v.start.x-e.clientX)/22)); };
+  container.onpointerup=container.onpointercancel=()=>{ v.start=null; };
+  v.stop=()=>{ clearInterval(v.timer); container.onpointerdown=container.onpointermove=container.onpointerup=container.onpointercancel=null; };
+  return v;
+}
+function closeSpinView(){ if(spinView){ spinView.stop(); spinView=null; } }
+
+async function openViewer(item){
+  current=item; const pv=$('viewPreview'); pv.innerHTML=''; closeMini(); closeSpinView();
+  const note=$('vNote'); note.style.display='none';
+  $('vTitle').value=item.title||''; $('vMemo').value=item.memo||'';
+  $('vTitle').disabled=$('vMemo').disabled=!!item.sample;
+  const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : '';
+  $('vMeta').textContent=(fmtDate(item.date)||'日付なし')+hint;
+  if(item.sample){ note.style.display='block'; note.textContent='これは見本の作品です。ログインすると、あなたの作品を飾れます。'; }
+  else if(item.local){ note.style.display='block'; note.textContent='まだドライブに保存されていません。電波のあるところで開くと自動で保存されます。'; }
+  $('vDelete').style.display=item.sample?'none':'';
+  $('vDelete').classList.remove('armed'); $('vDelete').textContent='しまう（削除）';
+  show('viewSheet');
+  try{
+    const d=await loadItem(item);
+    if(current!==item) return;
+    if(item.type==='photo'){ const img=document.createElement('img'); img.src=d.urls[0]; pv.appendChild(img); }
+    else if(item.type==='spin'){ spinView=makeSpinViewer(pv, d.urls); }
+    else { mini=makeMini(pv, d.obj); }
+  }catch(e){ pv.innerHTML='<div class="file3d">読み込めませんでした</div>'; }
+}
+async function closeViewer(){
+  show('viewSheet',false); closeMini(); closeSpinView();
+  const item=current; current=null;
+  if(!item || item.sample) return;
+  const nt=$('vTitle').value.trim(), nm=$('vMemo').value.trim();
+  if(nt===(item.title||'') && nm===(item.memo||'')) return;
+  if(item.local){ const p=await outboxAll(); const o=p.find(x=>x.id===item.id); if(o){ o.title=nt; o.memo=nm; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } await render(); return; }
+  if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+  try{
+    remote = await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ it.title=nt; it.memo=nm; } });
+    saveLocalIndex(); await render(true);
+  }catch(e){ if(e instanceof AuthError) needAuth(); toast('保存できませんでした'); }
+}
+$('vClose').onclick=closeViewer;
+$('viewSheet').addEventListener('click',e=>{ if(e.target.id==='viewSheet') closeViewer(); });
+$('vDelete').onclick=async()=>{
+  const b=$('vDelete');
+  if(!b.classList.contains('armed')){ b.classList.add('armed'); b.textContent='もう一度押すと削除'; return; }
+  const item=current; current=null; show('viewSheet',false); closeMini(); closeSpinView();
+  if(item.local){ await outboxDel(item.id); pendingItems=pendingItems.filter(x=>x.id!==item.id); forget(item.id); await render(); toast('作品をしまいました'); return; }
+  if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+  busy(true,'しまっています…');
+  try{
+    remote = await drive.mutate(d=>{ d.items=d.items.filter(x=>x.id!==item.id); });
+    saveLocalIndex();
+    for(const id of (item.type==='spin'?item.fileIds:[item.fileId])) await drive.trash(id);
+    forget(item.id); await render(); toast('作品をしまいました（ドライブのゴミ箱に移りました）',3600);
+  }catch(e){ if(e instanceof AuthError) needAuth(); toast('削除できませんでした'); }
+  finally{ busy(false); }
+};
+
+/* ---------------- 画像の縮小 ---------------- */
+function drawScaled(src, sw, sh, max){
+  const k=Math.min(1, max/Math.max(sw,sh));
+  const c=document.createElement('canvas'); c.width=Math.round(sw*k); c.height=Math.round(sh*k);
+  c.getContext('2d').drawImage(src,0,0,c.width,c.height);
+  return new Promise(res=>c.toBlob(b=>res(b),'image/jpeg',.86));
+}
+async function shrinkImage(file, max){
+  const url=URL.createObjectURL(file);
+  try{ const img=await loadImage(url); return await drawScaled(img,img.naturalWidth,img.naturalHeight,max); }
+  finally{ URL.revokeObjectURL(url); }
+}
+
+/* ---------------- 作品を飾る（まず端末に保存→ドライブへ送信） ---------------- */
+let pending=null;
+$('addPhoto').onclick=()=>{ $('filePhoto').value=''; $('filePhoto').click(); };
+$('add3d').onclick=()=>show('menu3d');
+$('menu3dCancel').onclick=()=>show('menu3d',false);
+$('chooseGlb').onclick=()=>{ show('menu3d',false); $('file3d').value=''; $('file3d').click(); };
+$('chooseSpin').onclick=()=>{ show('menu3d',false); openCam(); };
+
+$('filePhoto').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  let blob=null; try{ blob=await shrinkImage(f,1600); }catch(err){}
+  if(!blob){ toast('この画像は読み込めませんでした'); return; }
+  pending={type:'photo', blob, urls:[URL.createObjectURL(blob)]};
+  const pv=$('addPreview'); pv.innerHTML=''; const img=document.createElement('img'); img.src=pending.urls[0]; pv.appendChild(img);
+  openAdd('写真・絵を飾る','例：はじめて描いた家族の絵');
+};
+$('file3d').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(f.size>30*1048576){ toast('ファイルが大きすぎます（30MBまで）',3600); return; }
+  const buf=await f.arrayBuffer();
+  try{ await parseGLB(buf.slice(0)); }
+  catch(err){ toast('このファイルは読み込めませんでした（.glb 形式に対応しています）',3600); return; }
+  pending={type:'model', blob:new Blob([buf],{type:'model/gltf-binary'}), urls:[]};
+  $('addPreview').innerHTML=`<div class="file3d">🧊 ${esc(f.name)}<br>（${(f.size/1048576).toFixed(1)} MB）</div>`;
+  openAdd('3D作品を置く','例：ダンボールのロボット');
+};
+function openAdd(title, ph){ $('addTitle').textContent=title; $('inTitle').value=''; $('inTitle').placeholder=ph; $('inDate').value=today(); $('inMemo').value=''; show('addSheet'); }
+function closeAdd(){ show('addSheet',false); closeSpinView(); if(pending&&pending.urls) pending.urls.forEach(u=>URL.revokeObjectURL(u)); pending=null; }
+$('addCancel').onclick=closeAdd;
+$('addSave').onclick=async()=>{
+  if(!pending) return;
+  const p=pending; pending=null;
+  show('addSheet',false); closeSpinView(); (p.urls||[]).forEach(u=>URL.revokeObjectURL(u));
+  const item={ id:uid(), type:p.type, title:$('inTitle').value.trim(), date:$('inDate').value, memo:$('inMemo').value.trim(), created:Date.now(), local:true };
+  if(p.type==='spin') item.blobs=p.blobs; else item.blob=p.blob;
+  await outboxPut(item);
+  pendingItems.push(item);
+  await render(); visit(item.id);
+  toast(p.type==='photo' ? '壁に飾りました' : '台の上に飾りました');
+  sync();
+};
+
+/* ---------------- くるっと写真カメラ ---------------- */
+const MAX_FRAMES=16, MIN_FRAMES=4, SPIN_SIZE=900;
+let camStream=null, shots=[];
+async function openCam(){
+  shots=[]; drawShots();
+  $('cam').classList.add('show');
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    const v=$('camVideo'); v.srcObject=camStream; await v.play().catch(()=>{});
+  }catch(e){
+    closeCam();
+    toast('カメラを使えなかったので、アルバムから選んでください',3600);
+    $('fileSpin').value=''; $('fileSpin').click();
+  }
+}
+function closeCam(){ if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; } $('camVideo').srcObject=null; $('cam').classList.remove('show'); }
+function drawShots(){
+  $('camCount').textContent=`${shots.length} 枚`+(shots.length<8?'（あと少し）':'');
+  $('camDone').disabled = shots.length<MIN_FRAMES;
+  const box=$('camThumbs'); box.innerHTML='';
+  shots.forEach(s=>{ const i=document.createElement('img'); i.src=s.url; box.appendChild(i); });
+  box.scrollLeft=box.scrollWidth;
+  const g=$('camGhost'); if(shots.length){ g.src=shots[shots.length-1].url; g.style.display=''; } else g.style.display='none';
+}
+$('camShutter').onclick=async()=>{
+  const v=$('camVideo'); if(!v.videoWidth) return;
+  if(shots.length>=MAX_FRAMES){ toast(`${MAX_FRAMES}枚までです`); return; }
+  const stage=$('camStage'), sw=stage.clientWidth, sh=stage.clientHeight;
+  const vr=v.videoWidth/v.videoHeight, sr=sw/sh;
+  let cw=v.videoWidth, ch=v.videoHeight, cx=0, cy=0;
+  if(vr>sr){ cw=v.videoHeight*sr; cx=(v.videoWidth-cw)/2; } else { ch=v.videoWidth/sr; cy=(v.videoHeight-ch)/2; }
+  const tmp=document.createElement('canvas'); tmp.width=Math.round(cw); tmp.height=Math.round(ch);
+  tmp.getContext('2d').drawImage(v,cx,cy,cw,ch,0,0,tmp.width,tmp.height);
+  const blob=await drawScaled(tmp,tmp.width,tmp.height,SPIN_SIZE);
+  shots.push({blob,url:URL.createObjectURL(blob)});
+  const fl=$('flash'); fl.style.transition='none'; fl.style.opacity=.7; requestAnimationFrame(()=>{ fl.style.transition='opacity .25s'; fl.style.opacity=0; });
+  drawShots();
+};
+$('camClose').onclick=()=>{ shots.forEach(s=>URL.revokeObjectURL(s.url)); shots=[]; closeCam(); };
+$('camAlbum').onclick=()=>{ $('fileSpin').value=''; $('fileSpin').click(); };
+$('camDone').onclick=()=>{ const s=shots; shots=[]; closeCam(); startSpinAdd(s); };
+$('fileSpin').onchange=async e=>{
+  const files=[...e.target.files].sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name)).slice(0,MAX_FRAMES);
+  if(!files.length) return;
+  const list=[];
+  for(const f of files){ try{ const b=await shrinkImage(f,SPIN_SIZE); if(b) list.push({blob:b,url:URL.createObjectURL(b)}); }catch(err){} }
+  if($('cam').classList.contains('show')){ shots=shots.concat(list).slice(0,MAX_FRAMES); drawShots(); return; }
+  if(list.length<2){ toast('2枚以上選んでください'); return; }
+  startSpinAdd(list);
+};
+function startSpinAdd(list){
+  if(list.length<2){ toast('写真が足りません'); return; }
+  pending={type:'spin', blobs:list.map(s=>s.blob), urls:list.map(s=>s.url)};
+  const pv=$('addPreview'); pv.innerHTML='';
+  spinView=makeSpinViewer(pv, pending.urls);
+  openAdd(`くるっと写真を飾る（${list.length}枚）`,'例：紙ねんどの恐竜');
+}
+
+/* ---------------- 起動 ---------------- */
+(async()=>{
+  try{ await document.fonts.ready; }catch(e){}
+  await openDB();
+  const result = handleRedirect();
+  if(auth.signedIn){
+    loadLocalIndex();
+    pendingItems = await outboxAll();
+  }
+  await render(true); resetView();
+  $('loading').classList.add('hide');
+  loop();
+
+  if(result==='denied'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='ログインがキャンセルされました。'; return; }
+  if(result==='scope'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='「Googleドライブのファイルの作成・編集」にチェックを入れて、もう一度ログインしてください。'; return; }
+  if(!auth.signedIn){ show('welcomeSheet'); if(isInApp) show('inappSheet'); return; }
+
+  if(!auth.valid){
+    // 1時間でログインの鍵が切れるので、自動でつなぎ直す（画面は一瞬切り替わります）
+    let tried=0; try{ tried=Number(sessionStorage.getItem('omoide.silentAt')||0); }catch(e){}
+    if(result!=='silent-failed' && Date.now()-tried>60000 && navigator.onLine && !isInApp){
+      try{ sessionStorage.setItem('omoide.silentAt', String(Date.now())); }catch(e){}
+      startLogin(true); return;
+    }
+    needAuth(); return;
+  }
+  await sync();
+  if(result==='ok' && !remote.name && lsGet('omoide.nameAsked')!=='1') openName();
+})();
+</script>
+</body>
+</html>
