@@ -448,6 +448,8 @@ function handleRedirect(){
   const scope = h.get('scope')||'';
   if(!scope.includes('drive.file')) return 'scope';
   auth.token = h.get('access_token');
+  // 自分でログインし直したとき（別のアカウントかもしれない）は、前のフォルダ情報を使わずに探し直す
+  if(!silent){ drive.reset(); lsSet('omoide.email',null); auth.email=''; }
   auth.exp = Date.now() + Number(h.get('expires_in')||3600)*1000;
   lsSet('omoide.token', auth.token); lsSet('omoide.exp', String(auth.exp)); lsSet('omoide.signedIn','1');
   return 'ok';
@@ -1104,9 +1106,9 @@ function needAuth(){
 }
 
 // ドライブと同期：未送信の作品を送り、最新の一覧を受け取る
-let syncing=null;
+let syncing=null, lastSyncError='';
 function sync(){ if(!syncing) syncing=doSync().finally(()=>{ syncing=null; }); return syncing; }
-async function doSync(){
+async function doSync(retried=false){
   if(!auth.signedIn) return;
   if(!auth.valid){ needAuth(); return; }
   const pill=$('syncPill');
@@ -1143,10 +1145,14 @@ async function doSync(){
     await render();
   }catch(e){
     if(e instanceof AuthError){ needAuth(); return; }
-    if(/drive 404/.test(String(e.message))){ drive.reset(); }  // フォルダが消された等
+    const msg=String(e && e.message || e);
+    // 前に使っていたアカウントのフォルダ情報が残っている等：情報を消して1回だけやり直す
+    if(!retried && /drive (403|404)/.test(msg)){ drive.reset(); lsSet('omoide.cache',null); remote={name:'',items:[]}; return doSync(true); }
     pill.classList.remove('show');
     console.warn(e);
-    toast(String(e.message)==='network' ? 'オフラインです。つながったら保存します' : 'ドライブとの同期に失敗しました',3600);
+    if(msg==='network'){ toast('オフラインです。つながったら保存します',3600); return; }
+    lastSyncError=msg;
+    toast('ドライブとの同期に失敗しました（'+msg.replace(/^drive /,'エラー ').slice(0,90)+'）',8000);
   }
 }
 addEventListener('online', ()=>sync());
