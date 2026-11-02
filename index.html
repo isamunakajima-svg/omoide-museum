@@ -123,6 +123,20 @@
   .winfo .wm{font-size:12px;color:var(--muted);margin-top:2px}
   .winfo .wmemo{font-size:12.5px;color:var(--ink);margin-top:4px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .wbadge{font-size:11px;color:#a9532d;background:#fbefe8;border-radius:999px;padding:1px 7px;margin-left:6px}
+  .modebar{position:fixed;left:50%;top:calc(56px + env(safe-area-inset-top));transform:translateX(-50%);display:none;gap:4px;background:#fff9;border-radius:999px;padding:4px;z-index:4;box-shadow:0 2px 10px #3a2e2518}
+  .modebar.show{display:flex}
+  .modebar button{border:0;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--muted);padding:7px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  .modebar button.on{background:var(--accent);color:#fff}
+  body.has-mode #syncPill{top:calc(104px + env(safe-area-inset-top))}
+  body.has-mode #hint{top:calc(110px + env(safe-area-inset-top))}
+  .members{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+  .members span{background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px}
+  .sharebox{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px;margin-top:12px}
+  .sharebox b{display:block;font-size:14.5px;margin-bottom:2px}
+  .sharebox p{margin:0 0 10px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .sharebox .row{margin-top:0}
+  .btn.line{background:#06c755;color:#fff}
+  .btn.sm{font-size:13.5px;padding:10px 12px;border-radius:12px;box-shadow:none}
   input[type=file]{display:none}
 </style>
 <script type="importmap">
@@ -144,6 +158,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
 </header>
+<div class="modebar" id="modeBar"><button id="modeMine" class="on">わたしの美術館</button><button id="modeFamily">家族の部屋</button></div>
 <div id="syncPill"><span class="spin"></span><span id="syncText">ドライブに保存中…</span></div>
 <div id="hint">ドラッグで見回す ・ 2本指でズーム ・ 床をタップで移動</div>
 
@@ -206,6 +221,7 @@
   <div class="sheet">
     <h2>メニュー</h2>
     <div class="meta" id="menuAccount"></div>
+    <button class="choice" id="menuFamily"><span class="ic">👪</span><div><b>家族の部屋・親戚に見せる</b><span id="menuFamilySub">家族みんなで作品を飾れる部屋をつくります。</span></div></button>
     <button class="choice" id="menuRename"><span class="ic">🏷️</span><div><b>美術館の名前を変える</b><span id="menuNameNow"></span></div></button>
     <a class="choice" id="menuDrive" target="_blank" rel="noopener"><span class="ic">📁</span><div><b>Googleドライブで見る</b><span>保存された写真のファイルを直接見られます。</span></div></a>
     <button class="choice" id="menuHome"><span class="ic">📲</span><div><b>ホーム画面に追加する方法</b><span>アプリのように、すぐ開けるようになります。</span></div></button>
@@ -253,6 +269,45 @@
   </div>
 </div>
 
+<!-- 家族の部屋 -->
+<div class="overlay" id="familySheet">
+  <div class="sheet">
+    <h2 id="familyTitle">家族の部屋</h2>
+    <div id="familyBody"></div>
+    <button class="link" id="familyClose">閉じる</button>
+  </div>
+</div>
+
+<!-- 招待されたとき -->
+<div class="overlay top" id="joinSheet">
+  <div class="sheet">
+    <h2>家族の部屋への招待</h2>
+    <p class="lead" id="joinLead"></p>
+    <div id="joinForm">
+      <label for="inJoinName">部屋での表示名</label>
+      <input type="text" id="inJoinName" placeholder="例：ママ、おばあちゃん" maxlength="12">
+      <div class="note">参加すると、あなたが飾った作品も家族の部屋に並びます（作品ごとに「飾らない」にもできます）。共有した作品は、リンクを知っている家族や親戚が見られるようになります。</div>
+      <div class="row"><button class="btn ghost" id="joinCancel">あとで</button><button class="btn primary" id="joinGo">参加する</button></div>
+    </div>
+    <div id="joinDone" style="display:none">
+      <div class="note">参加しました！最後に、<b>参加したことを家族に知らせてください</b>。このお知らせを家族が開くと、あなたの作品が家族のスマホの部屋にも並ぶようになります。</div>
+      <div class="row"><a class="btn line" id="joinNotify" target="_blank" rel="noopener">LINEで参加を知らせる</a></div>
+      <div class="row"><button class="btn ghost" id="joinCopy">お知らせのリンクをコピー</button></div>
+      <button class="link" id="joinClose">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 見るだけモードの案内 -->
+<div class="overlay" id="viewInfoSheet">
+  <div class="sheet">
+    <h2 id="viewInfoTitle">見るだけの美術館</h2>
+    <p class="lead">ご家族から共有された美術館です。ログインしなくても見られます。<br>作品をタップすると、大きく見たり、くるっと回したりできます。</p>
+    <div class="row"><button class="btn primary" id="viewInfoOk">見る</button></div>
+    <button class="link" id="viewInfoMine">自分の美術館をつくる</button>
+  </div>
+</div>
+
 <!-- 作品の一覧 -->
 <div class="overlay" id="listSheet">
   <div class="sheet" style="min-height:70vh">
@@ -268,6 +323,7 @@
   <div class="sheet">
     <div class="preview" id="viewPreview"></div>
     <div class="opts" id="vSpinOpts" style="display:none"><button class="chip" id="vDir">🔄 回る向きを反転</button></div>
+    <div class="opts" id="vShareOpts" style="display:none"><button class="chip on" id="vShare">👪 家族の部屋に飾る</button></div>
     <label for="vTitle">タイトル</label>
     <input type="text" id="vTitle" maxlength="30">
     <label for="vDate">いつの思い出？</label>
@@ -313,12 +369,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    設定（README.md の手順で取得した値を入れてください）
    ====================================================== */
 const GOOGLE_CLIENT_ID = '354587476794-j4lfhu2kd5p79ktivjv3b3mntkmdeg7h.apps.googleusercontent.com';            // 例：1234-abcd.apps.googleusercontent.com
+const GOOGLE_API_KEY = '';               // 家族の部屋・見るだけリンク用のAPIキー（README 参照）
 const BRAND = '';                       // 入口の看板に小さく出す名前（例：整理収納アドバイザー ○○）
 
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const GAPI = (window.OMOIDE_TEST && window.OMOIDE_TEST.gapi) || 'https://www.googleapis.com';
 const GAUTH = (window.OMOIDE_TEST && window.OMOIDE_TEST.auth) || 'https://accounts.google.com/o/oauth2/v2/auth';
 const ROOT_NAME = 'おもいで美術館';
+
 
 const $ = id => document.getElementById(id);
 const toast = (msg, ms=2800) => { const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'), ms); };
@@ -331,6 +389,16 @@ const lsSet = (k,v) => { try{ v==null ? localStorage.removeItem(k) : localStorag
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => 'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const isInApp = /Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent);
+const API_KEY = (window.OMOIDE_TEST && window.OMOIDE_TEST.apiKey) || GOOGLE_API_KEY;
+const APP_URL = location.origin + location.pathname;
+const params = new URLSearchParams(location.search);
+const viewId = params.get('view');                 // 見るだけリンクで開いたとき
+const viewOnly = !!viewId;
+if(params.get('join')) lsSet('omoide.pendingJoin', params.get('join'));
+if(params.get('join')) history.replaceState(null,'',location.pathname);
+let mode = lsGet('omoide.mode')==='family' ? 'family' : 'mine';   // 'mine' | 'family'
+const inviteUrl = id => `${APP_URL}?join=${encodeURIComponent(id)}&openExternalBrowser=1`;
+const viewUrl = id => `${APP_URL}?view=${encodeURIComponent(id)}`;
 
 /* ======================================================
    Google ログイン（リダイレクト方式：iPhoneのホーム画面アプリでも動く）
@@ -433,9 +501,58 @@ const drive = {
     await gfetch(`/upload/drive/v3/files/${this.indexId}?uploadType=media&fields=id`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d) });
   },
   // 最新を読み直してから変更して保存（別の端末での変更を消さないため）
-  async mutate(fn){ const d=await this.readIndex(); fn(d); await this.writeIndex(d); return d; },
+  async mutate(fn){
+    const d=await this.readIndex(); fn(d); await this.writeIndex(d);
+    if(d.share && d.share.enabled){ try{ await this.writePublic(d); }catch(e){ if(e instanceof AuthError) throw e; console.warn(e); } }
+    return d;
+  },
+  // リンクを知っている人が見られるようにする／やめる
+  async setPublic(id, on){
+    if(on) await gfetch(`/drive/v3/files/${encodeURIComponent(id)}/permissions?fields=id`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ role:'reader', type:'anyone', allowFileDiscovery:false }) });
+    else { try{ await gfetch(`/drive/v3/files/${encodeURIComponent(id)}/permissions/anyoneWithLink`, { method:'DELETE' }); }catch(e){ if(e instanceof AuthError) throw e; } }
+  },
+  async writePublic(d){
+    const sh=d.share; if(!sh || !sh.enabled || !sh.publicId) return;
+    await gfetch(`/upload/drive/v3/files/${sh.publicId}?uploadType=media&fields=id`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(buildPublic(d)) });
+  },
   reset(){ this.folderId=null; this.indexId=null; lsSet('omoide.folder',null); lsSet('omoide.index',null); }
 };
+
+/* ---------------- 家族の部屋：公開データの読み書き ---------------- */
+const fileIdsOf = it => it.type==='spin' ? (it.fileIds||[]) : [it.fileId].filter(Boolean);
+// 家族や親戚が読む「公開データ」（共有している作品だけ）
+function buildPublic(d){
+  const sh=d.share;
+  return { kind:'omoide-public', version:1, name:sh.name||'', museum:d.name||'',
+    room:{ name:sh.roomName||'', members:(sh.members||[]).filter(x=>x!==sh.publicId) },
+    items:d.items.filter(it=>it.shared!==false).map(it=>({ id:it.id, type:it.type, title:it.title||'', date:it.date||'', memo:it.memo||'', created:it.created,
+      fileId:it.fileId, fileIds:it.fileIds, cutout:it.cutout, spinDir:it.spinDir })) };
+}
+// ログインなしで読む（APIキー）
+async function pfetch(id){
+  if(!API_KEY) throw new Error('nokey');
+  let r; try{ r=await fetch(`${GAPI}/drive/v3/files/${encodeURIComponent(id)}?alt=media&key=${encodeURIComponent(API_KEY)}`); }catch(e){ throw new Error('network'); }
+  if(!r.ok) throw new Error('public '+r.status);
+  return r;
+}
+async function pubJson(id){ const j=await (await pfetch(id)).json(); if(!j || j.kind!=='omoide-public') throw new Error('notpublic'); return j; }
+// 部屋のメンバーを順にたどって、全員の公開データを集める
+async function loadRoom(startIds, selfId){
+  const seen=new Map(), q=startIds.slice(); if(selfId) seen.set(selfId,null);
+  while(q.length && seen.size<40){
+    const id=q.shift(); if(!id || seen.has(id)) continue;
+    try{ const pj=await pubJson(id); seen.set(id,pj); (pj.room&&pj.room.members||[]).forEach(m=>{ if(!seen.has(m)) q.push(m); }); }
+    catch(e){ if(String(e.message)==='network') throw e; }
+  }
+  if(selfId) seen.delete(selfId);
+  return seen;
+}
+function roomItemsFrom(map){
+  const out=[];
+  for(const [pid,pj] of map){ (pj.items||[]).forEach(it=>out.push({ ...it, id:pid+':'+it.id, pub:true, owner:pid, ownerName:pj.name||'' })); }
+  return out;
+}
+function roomNameOf(map){ for(const pj of map.values()){ if(pj && pj.room && pj.room.name) return pj.room.name; } for(const pj of map.values()){ if(pj && pj.museum) return pj.museum; } return ''; }
 
 /* ---------------- 端末内の保存（キャッシュと未送信の作品） ---------------- */
 const idb = { db:null };
@@ -466,7 +583,7 @@ async function getBlobs(item){
   const out=[];
   for(const id of ids){
     let b=await cacheGet(id);
-    if(!b){ b=await drive.download(id); cachePut(id,b); }
+    if(!b){ b = item.pub ? await (await pfetch(id)).blob() : await drive.download(id); cachePut(id,b); }
     out.push(b);
   }
   return out;
@@ -639,7 +756,7 @@ function textTexture(lines, w=512, h=160, opts={}){
 }
 function plaqueFor(item, w=.46, h=.144){
   const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({toneMapped:false,
-    map:textTexture([{text:item.title||'無題',size:44,y:70,bold:true},{text:fmtDate(item.date),size:30,y:122,color:'#8a7d70'}])}));
+    map:textTexture([{text:item.title||'無題',size:44,y:70,bold:true},{text:(item.ownerName?item.ownerName+'・':'')+fmtDate(item.date),size:30,y:122,color:'#8a7d70'}])}));
   m.userData.ownMat=true; m.material.userData.ownMap=true; return m;
 }
 function disposeGroup(g){
@@ -808,7 +925,7 @@ async function doBuild(items){
   });
 
   const real=items.filter(i=>!i.sample).length;
-  $('count').textContent = real ? `${real} 点` : (auth.signedIn ? 'まだ作品がありません' : '見本');
+  $('count').textContent = real ? `${real} 点` : ((auth.signedIn||viewOnly) ? '0 点' : '見本');
 }
 
 /* ---------------- 移動・視点操作 ---------------- */
@@ -910,18 +1027,44 @@ function loop(){
 let remote = { name:'', items:[] };
 let pendingItems = [];
 let lastSig='';
+let roomItems = [], roomMembers = [], roomName = '';     // 家族の部屋（他の人の作品）
+let viewItems = [], viewName = '';                      // 見るだけモード
+const myShare = () => (remote.share && remote.share.enabled) ? remote.share : null;
+function loadRoomCache(){ try{ const a=JSON.parse(lsGet(viewOnly?'omoide.view.'+viewId:'omoide.room')||'null'); if(Array.isArray(a)) applyRoom(new Map(a)); }catch(e){} }
+function applyRoom(map){
+  const items=roomItemsFrom(map), name=roomNameOf(map);
+  if(viewOnly){ viewItems=items; viewName=name; }
+  else { roomItems=items; roomMembers=[...map].map(([id,pj])=>({id, name:pj.name||'家族'})); roomName=(myShare()&&myShare().roomName)||name; }
+}
+async function refreshRoom(){
+  if(viewOnly){ const map=await loadRoom([viewId]); applyRoom(map); lsSet('omoide.view.'+viewId, JSON.stringify([...map])); return map; }
+  const sh=myShare(); if(!sh || !API_KEY){ roomItems=[]; roomMembers=[]; return null; }
+  const map=await loadRoom(sh.members||[], sh.publicId);
+  applyRoom(map); lsSet('omoide.room', JSON.stringify([...map]));
+  // たどって見つかった家族を自分の名簿にも追加（つながりを強くする）
+  const add=[...map.keys()].filter(id=>!(sh.members||[]).includes(id));
+  if(add.length && auth.valid){ try{ remote=await drive.mutate(d=>{ if(d.share){ d.share.members=[...new Set([...(d.share.members||[]),...add])]; } }); saveLocalIndex(); }catch(e){} }
+  return map;
+}
 function loadLocalIndex(){ try{ const d=JSON.parse(lsGet('omoide.cache')||'null'); if(d&&Array.isArray(d.items)) remote=d; }catch(e){} }
 function saveLocalIndex(){ lsSet('omoide.cache', JSON.stringify(remote)); }
 function allItems(){
+  if(viewOnly) return viewItems.slice().sort((a,b)=>(a.created||0)-(b.created||0));
   if(!auth.signedIn) return SAMPLES;
   const ids=new Set(remote.items.map(i=>i.id));
-  return remote.items.concat(pendingItems.filter(p=>!ids.has(p.id))).sort((a,b)=>(a.created||0)-(b.created||0));
+  const mine=remote.items.concat(pendingItems.filter(p=>!ids.has(p.id)));
+  if(mode==='family' && myShare()){
+    const nm=myShare().name||'';
+    return mine.filter(i=>i.shared!==false).map(i=>({ ...i, ownerName:nm, mineInRoom:true })).concat(roomItems).sort((a,b)=>(a.created||0)-(b.created||0));
+  }
+  return mine.sort((a,b)=>(a.created||0)-(b.created||0));
 }
+const familyMode = () => viewOnly || (mode==='family' && !!myShare());
 async function render(force=false){
-  museumName = remote.name || '';
+  museumName = viewOnly ? viewName : (familyMode() ? (roomName||myShare().roomName||'') : (remote.name || ''));
   setHeader();
   const list=allItems();
-  const s=JSON.stringify([museumName, list.map(i=>[i.id,i.title,i.date,!!i.local])]);
+  const s=JSON.stringify([museumName, mode, list.map(i=>[i.id,i.title,i.date,!!i.local,i.ownerName||''])]);
   if(!force && s===lastSig) return;
   lastSig=s;
   const loadingMany = list.filter(i=>!i.sample && !loadedCache.has(i.id)).length;
@@ -932,8 +1075,14 @@ async function render(force=false){
   clampPos(pos);
 }
 function setHeader(){
-  $('museumName').textContent = auth.signedIn && museumName ? `${museumName}の美術館` : 'おもいで美術館';
-  $('bar').classList.toggle('hidden', !auth.signedIn);
+  if(viewOnly) $('museumName').textContent = museumName ? `${museumName}の美術館` : 'おもいで美術館';
+  else if(familyMode()) $('museumName').textContent = museumName ? `${museumName}の部屋` : '家族の部屋';
+  else $('museumName').textContent = auth.signedIn && museumName ? `${museumName}の美術館` : 'おもいで美術館';
+  $('bar').classList.toggle('hidden', viewOnly || !auth.signedIn);
+  const showMode = !viewOnly && auth.signedIn && !!myShare();
+  $('modeBar').classList.toggle('show', showMode); document.body.classList.toggle('has-mode', showMode);
+  $('modeMine').classList.toggle('on', !familyMode()); $('modeFamily').classList.toggle('on', familyMode());
+  $('openList').style.display = '';
 }
 
 let needAuthShown=false;
@@ -953,6 +1102,7 @@ async function doSync(){
   const pill=$('syncPill');
   try{
     await drive.ensure();
+    remote = await drive.readIndex(); saveLocalIndex();
     pendingItems = await outboxAll();
     if(pendingItems.length){
       pill.classList.add('show'); pill.querySelector('.spin').style.display=''; pill.onclick=null;
@@ -962,21 +1112,24 @@ async function doSync(){
         const ext = p.type==='model' ? '.glb' : (p.type==='spin' && p.cutout ? '.png' : '.jpg');
         const base = (p.title||'無題').replace(/[\\/:*?"<>|]/g,'').slice(0,20) + '_' + (p.date||today());
         const ids=[];
+        const share = myShare() && p.shared!==false;
         for(let i=0;i<blobs.length;i++){
           const f=await drive.upload(blobs[i], base + (blobs.length>1?`_${String(i+1).padStart(2,'0')}`:'') + ext);
           ids.push(f.id); cachePut(f.id, blobs[i]);
+          if(share) await drive.setPublic(f.id, true);
         }
         const item={ id:p.id, type:p.type, title:p.title, date:p.date, memo:p.memo||'', created:p.created };
+        if(p.shared===false) item.shared=false;
         if(p.type==='spin'){ item.fileIds=ids; item.cutout=!!p.cutout; item.spinDir=p.spinDir||1; } else item.fileId=ids[0];
         remote = await drive.mutate(d=>{ d.items=d.items.filter(x=>x.id!==item.id); d.items.push(item); });
         saveLocalIndex();
         await outboxDel(p.id);
         pendingItems = pendingItems.filter(x=>x.id!==p.id);
       }
-    } else {
-      remote = await drive.readIndex(); saveLocalIndex();
     }
     pill.classList.remove('show'); needAuthShown=false;
+    if(myShare()){ try{ await refreshRoom(); }catch(e){ console.warn(e); } }
+    else if(mode==='family'){ mode='mine'; lsSet('omoide.mode','mine'); }
     await render();
   }catch(e){
     if(e instanceof AuthError){ needAuth(); return; }
@@ -1006,7 +1159,9 @@ $('nameGo').onclick=async()=>{
   finally{ busy(false); }
 };
 $('openMenu').onclick=()=>{
+  if(viewOnly){ show('viewInfoSheet'); return; }
   if(!auth.signedIn){ show('welcomeSheet'); return; }
+  $('menuFamilySub').textContent = myShare() ? `「${myShare().roomName||'家族'}」の部屋：家族を招待する・親戚に見せる` : '家族みんなで作品を飾れる部屋をつくります。';
   $('menuAccount').textContent = auth.email ? `${auth.email} のGoogleドライブに保存しています` : 'Googleドライブに保存しています';
   $('menuNameNow').textContent = remote.name ? `いまの名前：${remote.name}` : 'まだ名前がありません';
   const md=$('menuDrive'); if(drive.folderId){ md.style.display=''; md.href=`https://drive.google.com/drive/folders/${drive.folderId}`; } else md.style.display='none';
@@ -1090,15 +1245,19 @@ async function openViewer(item){
   current=item; const pv=$('viewPreview'); pv.innerHTML=''; closeMini(); closeSpinView();
   const note=$('vNote'); note.style.display='none';
   $('vTitle').value=item.title||''; $('vMemo').value=item.memo||''; $('vDate').value=item.date||'';
-  $('vTitle').disabled=$('vMemo').disabled=$('vDate').disabled=!!item.sample;
+  const readOnly = !!item.sample || !!item.pub;
+  $('vTitle').disabled=$('vMemo').disabled=$('vDate').disabled=readOnly;
   $('vGo').style.display = $('listSheet').classList.contains('show') ? '' : 'none';
   const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : '';
   $('vMeta').textContent=hint.replace(/^　・　/,'');
   if(item.sample){ note.style.display='block'; note.textContent='これは見本の作品です。ログインすると、あなたの作品を飾れます。'; }
+  else if(item.pub){ note.style.display='block'; note.textContent=`${item.ownerName||'家族'}さんの作品です（見るだけ）。`; }
   else if(item.local){ note.style.display='block'; note.textContent='まだドライブに保存されていません。電波のあるところで開くと自動で保存されます。'; }
-  $('vSpinOpts').style.display = (item.type==='spin' && !item.sample) ? 'flex' : 'none';
+  $('vSpinOpts').style.display = (item.type==='spin' && !readOnly) ? 'flex' : 'none';
+  $('vShareOpts').style.display = (!readOnly && myShare()) ? 'flex' : 'none';
+  $('vShare').classList.toggle('on', item.shared!==false); $('vShare').textContent = item.shared!==false ? '👪 家族の部屋に飾っています' : '🔒 家族の部屋には飾っていません';
   $('vDir').classList.toggle('on', (item.spinDir||1)<0);
-  $('vDelete').style.display=item.sample?'none':'';
+  $('vDelete').style.display=readOnly?'none':'';
   $('vDelete').classList.remove('armed'); $('vDelete').textContent='しまう（削除）';
   show('viewSheet');
   try{
@@ -1114,7 +1273,7 @@ function latest(item){ if(item && item.local){ const r=remote.items.find(x=>x.id
 async function closeViewer(){
   show('viewSheet',false); closeMini(); closeSpinView();
   const item=latest(current); current=null;
-  if(!item || item.sample) return;
+  if(!item || item.sample || item.pub) return;
   const nt=$('vTitle').value.trim(), nm=$('vMemo').value.trim(), nd=$('vDate').value;
   if(nt===(item.title||'') && nm===(item.memo||'') && nd===(item.date||'')) return;
   if(item.local){ const p=await outboxAll(); const o=p.find(x=>x.id===item.id); if(o){ o.title=nt; o.memo=nm; o.date=nd; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } await render(); return; }
@@ -1127,8 +1286,22 @@ async function closeViewer(){
 const listOpen=()=>$('listSheet').classList.contains('show');
 $('vClose').onclick=async()=>{ await closeViewer(); if(listOpen()) drawList(); };
 $('vGo').onclick=async()=>{ const it=current; await closeViewer(); show('listSheet',false); if(it){ await building; visit(it.id); } };
+$('vShare').onclick=async()=>{
+  const item=latest(current); if(!item || item.sample || item.pub || !myShare()) return; current=item;
+  const on = item.shared===false;   // 切り替え後
+  const setChip=v=>{ $('vShare').classList.toggle('on', v); $('vShare').textContent = v ? '👪 家族の部屋に飾っています' : '🔒 家族の部屋には飾っていません'; };
+  if(item.local){ const o=(await outboxAll()).find(x=>x.id===item.id); if(o){ o.shared=on; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } item.shared=on; setChip(on); await render(true); return; }
+  if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+  busy(true, on ? '家族の部屋に飾っています…' : '家族の部屋から外しています…');
+  try{
+    for(const fid of fileIdsOf(item)) await drive.setPublic(fid, on);
+    remote=await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ if(on) delete it.shared; else it.shared=false; } });
+    saveLocalIndex(); item.shared=on; setChip(on); await render(true);
+  }catch(e){ if(e instanceof AuthError) needAuth(); toast('変更できませんでした'); }
+  finally{ busy(false); }
+};
 $('vDir').onclick=async()=>{
-  const item=latest(current); if(!item || item.sample) return; current=item;
+  const item=latest(current); if(!item || item.sample || item.pub) return; current=item;
   const nd=-(item.spinDir||1);
   if(spinView) spinView.dir=nd;
   $('vDir').classList.toggle('on', nd<0);
@@ -1154,6 +1327,123 @@ $('vDelete').onclick=async()=>{
   finally{ busy(false); }
 };
 
+/* ---------------- 家族の部屋 ---------------- */
+function lineHref(text){ return 'https://line.me/R/msg/text/?'+encodeURIComponent(text); }
+async function copyText(t){ try{ await navigator.clipboard.writeText(t); toast('コピーしました'); }catch(e){ toast('コピーできませんでした'); } }
+async function setMode(m){
+  mode = (m==='family' && myShare()) ? 'family' : 'mine'; lsSet('omoide.mode', mode);
+  setHeader();
+  if(mode==='family' && auth.valid){ busy(true,'家族の部屋を読み込んでいます…'); try{ await refreshRoom(); }catch(e){ toast('家族の部屋を読み込めませんでした'); } finally{ busy(false); } }
+  await render(true); resetView();
+}
+$('modeMine').onclick=()=>setMode('mine');
+$('modeFamily').onclick=()=>setMode('family');
+$('menuFamily').onclick=()=>{ show('menuSheet',false); openFamily(); };
+$('familyClose').onclick=()=>show('familySheet',false);
+function openFamily(){
+  const sh=myShare(), box=$('familyBody');
+  if(!API_KEY){ box.innerHTML='<div class="note err">家族の部屋を使うには、アプリの設定（APIキー）が必要です。</div>'; show('familySheet'); return; }
+  if(!sh){
+    $('familyTitle').textContent='家族の部屋をつくる';
+    box.innerHTML=`<p class="lead">家族それぞれが自分のスマホから作品を飾り、みんなの作品が並ぶ部屋です。遠くの親戚には「見るだけ」のリンクも送れます。</p>
+      <label for="inMyName">部屋での表示名</label><input type="text" id="inMyName" placeholder="例：パパ" maxlength="12">
+      <label for="inRoomName">部屋の名前</label><input type="text" id="inRoomName" placeholder="例：中島家" maxlength="20" value="${esc(remote.name||'')}">
+      <div class="note">今飾っている作品も部屋に並びます（作品ごとに「飾らない」にもできます）。共有した作品は、リンクを知っている家族や親戚が見られるようになります。</div>
+      <div class="row"><button class="btn primary" id="familyCreate">家族の部屋をつくる</button></div>`;
+    $('familyCreate').onclick=async()=>{
+      const n=$('inMyName').value.trim(), r=$('inRoomName').value.trim();
+      if(!n){ $('inMyName').focus(); return; } if(!r){ $('inRoomName').focus(); return; }
+      if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+      try{ await enableShare(n, r, []); toast('家族の部屋ができました'); await setMode('family'); openFamily(); }
+      catch(e){ if(e instanceof AuthError) needAuth(); console.warn(e); toast('部屋をつくれませんでした'); }
+    };
+  } else {
+    $('familyTitle').textContent=`「${sh.roomName||'家族'}」の部屋`;
+    const names=[sh.name||'わたし'].concat(roomMembers.map(m=>m.name));
+    const inv=inviteUrl(sh.publicId), vw=viewUrl(sh.publicId);
+    box.innerHTML=`<div class="meta">メンバー（${names.length}人）</div><div class="members">${names.map((x,i)=>`<span>${esc(x)}${i===0?'（わたし）':''}</span>`).join('')}</div>
+      <div class="sharebox"><b>👪 家族を招待する</b><p>家族が開いてGoogleでログインし「参加する」を押すと、自分の作品も飾れるようになります。</p>
+        <div class="row"><a class="btn line sm" target="_blank" rel="noopener" href="${lineHref(`「${sh.roomName||'家族'}」の家族の部屋に招待します。開いてGoogleでログインし、「参加する」を押してください。\n${inv}`)}">LINEで招待</a><button class="btn ghost sm" id="copyInvite">リンクをコピー</button></div></div>
+      <div class="sharebox"><b>👀 親戚に見せる（見るだけ）</b><p>ログインなしで、部屋に並んだ作品を見られます。作品の追加や変更はできません。</p>
+        <div class="row"><a class="btn line sm" target="_blank" rel="noopener" href="${lineHref(`${sh.roomName||'家族'}の「おもいで美術館」です。ログインなしで見られます。\n${vw}`)}">LINEで送る</a><button class="btn ghost sm" id="copyView">リンクをコピー</button></div></div>
+      <div class="row"><button class="btn ghost sm" id="familyRefresh">部屋を最新にする</button><button class="btn danger sm" id="familyStop">共有をやめる</button></div>`;
+    $('copyInvite').onclick=()=>copyText(inv);
+    $('copyView').onclick=()=>copyText(vw);
+    $('familyRefresh').onclick=async()=>{ busy(true,'読み込んでいます…'); try{ await refreshRoom(); await render(true); openFamily(); }catch(e){ toast('読み込めませんでした'); } finally{ busy(false); } };
+    $('familyStop').onclick=async()=>{
+      const b=$('familyStop');
+      if(!b.classList.contains('armed')){ b.classList.add('armed'); b.textContent='もう一度押すと共有をやめる'; return; }
+      if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+      try{ await disableShare(); show('familySheet',false); toast('共有をやめました。作品は自分の美術館に残っています',4000); }
+      catch(e){ if(e instanceof AuthError) needAuth(); toast('うまくいきませんでした'); }
+    };
+  }
+  show('familySheet');
+}
+// 共有を始める：公開データを作り、共有する作品をリンクで見られるようにする
+async function enableShare(name, roomNm, members){
+  busy(true,'家族の部屋を準備しています…');
+  try{
+    await drive.ensure();
+    const d=await drive.readIndex();
+    let pid=d.share && d.share.publicId;
+    if(!pid){ const f=await drive.upload(new Blob(['{}'],{type:'application/json'}), '家族の部屋の公開データ（消さないでください）.json', 'public'); pid=f.id; }
+    await drive.setPublic(pid, true);
+    const items=d.items.filter(it=>it.shared!==false); let i=0;
+    for(const it of items){ busy(true,`作品を共有しています（${++i}/${items.length}）`); for(const fid of fileIdsOf(it)) await drive.setPublic(fid,true); }
+    remote=await drive.mutate(dd=>{ const old=(dd.share&&dd.share.members)||[]; dd.share={ enabled:true, publicId:pid, name, roomName:roomNm, members:[...new Set(old.concat(members))].filter(x=>x!==pid) }; });
+    saveLocalIndex();
+    try{ await refreshRoom(); }catch(e){}
+  } finally { busy(false); }
+}
+async function disableShare(){
+  busy(true,'共有をやめています…');
+  try{
+    const d=await drive.readIndex(); const sh=d.share||{};
+    for(const it of d.items) for(const fid of fileIdsOf(it)) await drive.setPublic(fid,false);
+    if(sh.publicId){ await drive.setPublic(sh.publicId,false); await drive.trash(sh.publicId); }
+    remote=await drive.mutate(dd=>{ dd.share={ enabled:false }; });
+    saveLocalIndex(); roomItems=[]; roomMembers=[]; lsSet('omoide.room',null);
+    await setMode('mine');
+  } finally { busy(false); }
+}
+// 招待リンク・参加のお知らせリンクを開いたとき
+let joinTarget=null;
+async function handleJoin(id){
+  if(!API_KEY) return;
+  const sh=myShare(); if(sh && id===sh.publicId) return;
+  let inv; try{ inv=await pubJson(id); }catch(e){ toast('招待リンクが見つかりませんでした（共有をやめた可能性があります）',4500); return; }
+  const rn = (inv.room&&inv.room.name) || inv.museum || '家族';
+  if(sh){
+    if((sh.members||[]).includes(id)){ toast(`${inv.name||'家族'}さんとは、もうつながっています`); return; }
+    busy(true,'家族の部屋につないでいます…');
+    try{ remote=await drive.mutate(d=>{ d.share.members=[...new Set([...(d.share.members||[]), id])]; }); saveLocalIndex(); await setMode('family'); toast(`${inv.name||'家族'}さんの作品が部屋に並びました`,4000); }
+    catch(e){ if(e instanceof AuthError) needAuth(); toast('つなげませんでした'); }
+    finally{ busy(false); }
+    return;
+  }
+  joinTarget={ id, roomName:rn };
+  $('joinLead').textContent=`${inv.name||'ご家族'}さんから「${rn}」の家族の部屋に招待されています。`;
+  $('joinForm').style.display=''; $('joinDone').style.display='none'; $('inJoinName').value='';
+  show('joinSheet');
+}
+$('joinCancel').onclick=()=>show('joinSheet',false);
+$('joinClose').onclick=()=>show('joinSheet',false);
+$('joinGo').onclick=async()=>{
+  const n=$('inJoinName').value.trim(); if(!n){ $('inJoinName').focus(); return; }
+  if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+  try{
+    await enableShare(n, joinTarget.roomName, [joinTarget.id]);
+    await setMode('family');
+    const sh=myShare(), url=inviteUrl(sh.publicId);
+    const msg=`「${sh.roomName||'家族'}」の部屋に参加しました（${n}）。このリンクを開くと、わたしの作品もみんなの部屋に並びます。\n${url}`;
+    $('joinNotify').href=lineHref(msg); $('joinCopy').onclick=()=>copyText(url);
+    $('joinForm').style.display='none'; $('joinDone').style.display='';
+  }catch(e){ if(e instanceof AuthError) needAuth(); console.warn(e); toast('参加できませんでした'); }
+};
+$('viewInfoOk').onclick=()=>show('viewInfoSheet',false);
+$('viewInfoMine').onclick=()=>{ location.href=APP_URL; };
+
 /* ---------------- 作品の一覧 ---------------- */
 let listSort='new';
 const TYPE_LABEL={photo:'写真・絵', spin:'くるっと写真', model:'3D'};
@@ -1170,7 +1460,7 @@ function drawList(){
     const row=document.createElement('button'); row.className='wrow';
     const th=document.createElement('div'); th.className='wthumb'+(it.cutout?' cut':''); th.textContent = it.type==='model' ? '🧊' : '';
     const info=document.createElement('div'); info.className='winfo';
-    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${esc(fmtDate(it.date)||'日付なし')}・${TYPE_LABEL[it.type]||''}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
+    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.ownerName?esc(it.ownerName)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${TYPE_LABEL[it.type]||''}${it.shared===false&&myShare()&&!familyMode()?'・🔒':''}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
     row.append(th,info);
     row.onclick=()=>openViewer(it);
     box.appendChild(row);
@@ -1432,9 +1722,22 @@ $('optDir').onclick=()=>{ if(!pending) return; pending.dir=-pending.dir; if(spin
   try{ await document.fonts.ready; }catch(e){}
   await openDB();
   const result = handleRedirect();
+  if(viewOnly){
+    // 見るだけリンク：ログインなしで、共有された部屋を表示
+    loadRoomCache();
+    await render(true); resetView();
+    $('loading').classList.add('hide'); loop();
+    if(!viewItems.length) busy(true,'美術館を読み込んでいます…');
+    try{ await refreshRoom(); await render(); if(!viewItems.length && !viewName) toast('この美術館は見つかりませんでした（共有が終わった可能性があります）',5000); }
+    catch(e){ toast(String(e.message)==='network'?'オフラインのため、前回の内容を表示しています':'読み込めませんでした',4000); }
+    finally{ busy(false); }
+    return;
+  }
   if(auth.signedIn){
     loadLocalIndex();
     pendingItems = await outboxAll();
+    if(myShare()) loadRoomCache();
+    if(!myShare()) mode='mine';
   }
   await render(true); resetView();
   $('loading').classList.add('hide');
@@ -1442,7 +1745,11 @@ $('optDir').onclick=()=>{ if(!pending) return; pending.dir=-pending.dir; if(spin
 
   if(result==='denied'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='ログインがキャンセルされました。'; return; }
   if(result==='scope'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='「Googleドライブのファイルの作成・編集」にチェックを入れて、もう一度ログインしてください。'; return; }
-  if(!auth.signedIn){ show('welcomeSheet'); if(isInApp) show('inappSheet'); return; }
+  if(!auth.signedIn){
+    show('welcomeSheet'); if(isInApp) show('inappSheet');
+    if(lsGet('omoide.pendingJoin')){ $('loginErr').style.display='block'; $('loginErr').classList.remove('err'); $('loginErr').textContent='家族の部屋に招待されています。Googleでログインすると参加できます。'; }
+    return;
+  }
 
   if(!auth.valid){
     // 1時間でログインの鍵が切れるので、自動でつなぎ直す（画面は一瞬切り替わります）
@@ -1454,7 +1761,9 @@ $('optDir').onclick=()=>{ if(!pending) return; pending.dir=-pending.dir; if(spin
     needAuth(); return;
   }
   await sync();
-  if(result==='ok' && !remote.name && lsGet('omoide.nameAsked')!=='1') openName();
+  const pj=lsGet('omoide.pendingJoin');
+  if(pj){ lsSet('omoide.pendingJoin',null); await handleJoin(pj); }
+  else if(result==='ok' && !remote.name && lsGet('omoide.nameAsked')!=='1') openName();
 })();
 </script>
 </body>
