@@ -157,7 +157,8 @@
     background:linear-gradient(90deg,#00000038 0,#0000001a 3%,#0000 9%),linear-gradient(270deg,#0000000d 0,#0000 4%)}
   .bookview .pimg{position:absolute;inset:3.5%;width:93%;height:93%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
   .bookview .sh{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#0000005c,#00000000 70%);opacity:0}
-  .bookview .leaf{position:absolute;inset:0;transform-origin:0 50%;transform-style:preserve-3d;display:none;will-change:transform}
+  .bookview .pg-base{transform:translateZ(0)}
+  .bookview .leaf{position:absolute;inset:0;transform-origin:0 50%;-webkit-transform-style:preserve-3d;transform-style:preserve-3d;display:none;will-change:transform}
   .bookview .face{backface-visibility:hidden;-webkit-backface-visibility:hidden}
   .bookview .face.back{transform:rotateY(180deg);background:linear-gradient(270deg,#e9dfcd 0,#f7f1e6 12%,#fbf7ef 60%)}
   .bookview .face .lsh{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#0000 30%,#00000059);opacity:0}
@@ -1650,7 +1651,7 @@ function makeBookViewer(container, item, opts={}){
     <button class="pg prev" aria-label="前のページ">‹</button><button class="pg next" aria-label="次のページ">›</button><div class="pgcount"></div><button class="pgfull">⤢ 全画面</button>`;
   container.appendChild(box);
   const q=sel=>box.querySelector(sel);
-  const book=q('.book'), base=q('.pg-base .pc'), baseSh=q('.pg-base .sh'), leaf=q('.leaf'), front=q('.leaf .front .pc'), lsh=q('.leaf .lsh');
+  const book=q('.book'), base=q('.pg-base .pc'), baseSh=q('.pg-base .sh'), leaf=q('.leaf'), front=q('.leaf .front .pc'), lsh=q('.leaf .lsh'), lfront=q('.leaf .front'), lback=q('.leaf .back');
   const prev=q('.prev'), next=q('.next'), cnt=q('.pgcount'), full=q('.pgfull');
   const col=BOOK_COLORS[item.category]||BOOK_COLORS['アルバム']; book.style.setProperty('--bc','#'+col.toString(16).padStart(6,'0'));
   const urls=new Map(); let alive=true, aspect=.72;
@@ -1675,7 +1676,8 @@ function makeBookViewer(container, item, opts={}){
   const setP=(f,p)=>{
     const ang = f.dir>0 ? -180*p : -180*(1-p);
     const lift = Math.sin(p*Math.PI);
-    leaf.style.transform=`rotateY(${ang}deg) translateZ(${lift*6}px)`;
+    leaf.style.transform=`translateZ(${2+lift*6}px) rotateY(${ang}deg)`;
+    const over = ang < -90; lfront.style.visibility = over ? 'hidden' : 'visible'; lback.style.visibility = over ? 'visible' : 'hidden';
     lsh.style.opacity = (f.dir>0 ? p : 1-p)*1.6;
     baseSh.style.opacity = lift*.9 * (f.dir>0 ? (1-p) : p);
     f.p=p;
@@ -1713,7 +1715,7 @@ function makeBookViewer(container, item, opts={}){
     if(e.target.closest('button')) return;
     v.pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); try{box.setPointerCapture(e.pointerId);}catch(_){}
     if(v.pts.size===1){
-      const now=Date.now(); if(now-v.lastTap<300 && !v.flip){ if(v.zoom>1.05) resetZoom(); else { v.zoom=2.3; apply(); } } v.lastTap=now;
+      const now=Date.now(); if(now-v.lastTap<300 && !v.flip){ if(v.zoom>1.05) resetZoom(); else { v.zoom=2.3; apply(); } v.lastTap=-1; } else v.lastTap=now;
       v.start={x:e.clientX,y:e.clientY,px:v.px,py:v.py,drag:null,pending:false,t:now};
     } else if(v.pts.size===2){ v.start=null; v.pinch={d:dist(), z:v.zoom}; }
   };
@@ -1726,12 +1728,16 @@ function makeBookViewer(container, item, opts={}){
     if(v.zoom>1.01){ v.px=st.px+dx; v.py=st.py+(e.clientY-st.y); apply(); return; }
     // 指でつまんでめくる
     if(!st.drag && !st.pending && Math.abs(dx)>10){ st.pending=true; st.drag=await begin(dx<0?1:-1); st.pending=false; }
-    if(st.drag && v.start===st){ const w=book.offsetWidth||300; setP(st.drag, Math.max(0,Math.min(1, Math.abs(dx)/(w*1.1)))); }
+    if(st.drag && v.start===st){ const w=book.offsetWidth||300; setP(st.drag, Math.max(0,Math.min(1, Math.abs(dx)/(w*.75)))); }
   };
   box.onpointerup=box.onpointercancel=e=>{
     v.pts.delete(e.pointerId);
     const st=v.start;
-    if(st && st.drag && v.pts.size===0){ const fast=Date.now()-st.t<350 && st.drag.p>.05; finish(st.drag, st.drag.p>.3 || fast); }
+    if(st && !st.drag && !st.pending && v.pts.size===0 && v.zoom<=1.01 && Math.abs(e.clientX-st.x)<8 && Math.abs(e.clientY-st.y)<8){
+      const r=box.getBoundingClientRect(), x=(e.clientX-r.left)/r.width, t0=st.t;
+      clearTimeout(v.tapT); v.tapT=setTimeout(()=>{ if(v.lastTap===t0 && v.zoom<=1.01) turn(x>.5?1:-1); }, 320);
+    }
+    if(st && st.drag && v.pts.size===0){ const fast=Date.now()-st.t<450 && st.drag.p>.04; finish(st.drag, st.drag.p>.18 || fast); }
     if(v.pts.size<2) v.pinch=null;
     if(v.pts.size===0) v.start=null;
   };
@@ -1760,7 +1766,7 @@ async function openViewer(item){
   if(readOnly){ $('vAuthorChips').style.display='none'; } else drawAuthorChips('vAuthorChips','vAuthor');
   $('vOwner').textContent = item.ownerName ? `登録した人：${item.ownerName}` : '';
   $('vGo').style.display = $('listSheet').classList.contains('show') ? '' : 'none';
-  const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : item.type==='book' ? `　・　📚 ${item.category||'本棚'}（${fileIdsOf(item).length||(item.blobs||[]).length}ページ）　左右になぞると、ページをゆっくりめくれます` : '';
+  const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : item.type==='book' ? `　・　📚 ${item.category||'本棚'}（${fileIdsOf(item).length||(item.blobs||[]).length}ページ）　ページの右側をタップ、または左になぞるとめくれます` : '';
   $('vMeta').textContent=hint.replace(/^　・　/,'');
   if(item.sample){ note.style.display='block'; note.textContent='これは見本の作品です。ログインすると、あなたの作品を飾れます。'; }
   else if(item.pub){ note.style.display='block'; note.textContent=`${item.ownerName||'家族'}さんが登録した作品です（見るだけ）。`; }
