@@ -165,6 +165,16 @@
   .crow{display:flex;gap:8px;margin-top:8px}
   .crow input{flex:1;min-width:0}
   .crow .btn{flex:none;padding:10px 14px;border-radius:12px;box-shadow:none}
+  #owlBubble{position:fixed;left:0;top:0;transform:translate(-50%,-100%);background:#fffdf8;color:var(--ink);border:1.5px solid #e2d6c4;border-radius:16px;padding:9px 13px;
+    font-size:14px;line-height:1.6;width:max-content;max-width:min(78vw,340px);box-shadow:0 6px 18px #3a2e2530;z-index:6;display:none;pointer-events:none}
+  #owlBubble b{display:block;font-size:11.5px;color:#a9532d;margin-bottom:1px}
+  #owlBubble:after{content:"";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);border:8px solid transparent;border-top-color:#fffdf8;border-bottom:0}
+  #cmtNotice{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#c8693f;color:#fff;font:inherit;font-weight:700;font-size:14px;
+    border:0;border-radius:999px;padding:10px 16px;box-shadow:0 6px 16px #3a2e2540;z-index:5;display:none;cursor:pointer;white-space:nowrap}
+  #cmtNotice.show{display:block;animation:pop .35s ease}
+  @keyframes pop{from{transform:translate(-50%,10px);opacity:0}}
+  .cmt.new{background:#fff6ee;margin:0 -6px;padding:8px 6px;border-radius:8px}
+  .cmt.new .who:after{content:"NEW";font-size:10.5px;font-weight:700;color:#fff;background:#c8693f;border-radius:6px;padding:1px 6px}
   input[type=file]{display:none}
 </style>
 <script type="importmap">
@@ -188,6 +198,8 @@
 </header>
 <div class="modebar" id="modeBar"><button id="modeMine" class="on">わたしの部屋</button><button id="modeFamily">家族の美術館</button></div>
 <div id="syncPill"><span class="spin"></span><span id="syncText">ドライブに保存中…</span></div>
+<div id="owlBubble"></div>
+<button id="cmtNotice"></button>
 <div id="hint">ドラッグで見回す ・ 2本指でズーム ・ 床をタップで移動</div>
 
 <div class="bar hidden" id="bar">
@@ -737,7 +749,7 @@ scene.background=new THREE.Color(SKY_HORIZON);
 scene.fog=new THREE.Fog(SKY_HORIZON,40,170);
 const camera=new THREE.PerspectiveCamera(66,1,0.05,400);
 camera.rotation.order='YXZ';
-scene.add(new THREE.HemisphereLight(0xffffff,0xb7c39c,1.7));
+const hemi=new THREE.HemisphereLight(0xffffff,0xb7c39c,1.7); scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff4e0,1.5); sun.position.set(6,12,5); scene.add(sun);
 
 // 室内の寸法（W:幅 H:天井の高さ HS:壁の高さ。その上は高窓）
@@ -767,12 +779,15 @@ const baseMat=new THREE.MeshStandardMaterial({color:0xb08c64,roughness:.8});
 function rng(seed){ return ()=>{ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; }; }
 
 /* ---------- 外の景色（空・芝生・木・丘・雲） ---------- */
-function skyTexture(){
-  const c=document.createElement('canvas'); c.width=4; c.height=256; const x=c.getContext('2d');
-  const g=x.createLinearGradient(0,0,0,256);
-  g.addColorStop(0,'#6fb0e3'); g.addColorStop(.42,'#a9d2ef'); g.addColorStop(.5,'#eaf3f6'); g.addColorStop(1,'#eaf3f6');
+const skyCanvas=document.createElement('canvas'); skyCanvas.width=4; skyCanvas.height=256;
+function paintSky(top,mid,hor){
+  const x=skyCanvas.getContext('2d'), g=x.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,top); g.addColorStop(.42,mid); g.addColorStop(.5,hor); g.addColorStop(1,hor);
   x.fillStyle=g; x.fillRect(0,0,4,256);
-  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+function skyTexture(){
+  paintSky('#6fb0e3','#a9d2ef','#eaf3f6');
+  const t=new THREE.CanvasTexture(skyCanvas); t.colorSpace=THREE.SRGBColorSpace; return t;
 }
 function grassTexture(){
   const c=document.createElement('canvas'); c.width=256; c.height=256; const x=c.getContext('2d');
@@ -786,6 +801,17 @@ const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600), new THREE.MeshStan
 ground.rotation.x=-Math.PI/2; ground.position.y=-.03; scene.add(ground);
 const leafMats=[0x6fa85a,0x84b866,0x5f9a52,0x93c172].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.9,flatShading:true}));
 const trunkMat=new THREE.MeshStandardMaterial({color:0x8a6a4c,roughness:1});
+const hillMat=new THREE.MeshStandardMaterial({color:0x8fb07f,roughness:1});
+const terraceMat=new THREE.MeshStandardMaterial({color:0xe7e1d6,roughness:1});
+const cloudMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.92,fog:false});
+const lampMat=new THREE.MeshBasicMaterial({color:0xefe9df,toneMapped:false});
+const shadeMat=new THREE.MeshStandardMaterial({color:0xd9c3a2,roughness:.6,side:THREE.DoubleSide});
+// 星（夜だけ見える）
+const stars=(()=>{ const r=rng(99), n=420, a=new Float32Array(n*3);
+  for(let i=0;i<n;i++){ const th=r()*Math.PI*2, ph=Math.acos(1-r()*.95), R=240; a[i*3]=R*Math.sin(ph)*Math.cos(th); a[i*3+1]=R*Math.cos(ph)+10; a[i*3+2]=R*Math.sin(ph)*Math.sin(th); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(a,3));
+  return new THREE.Points(g, new THREE.PointsMaterial({color:0xffffff,size:2,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false})); })();
+scene.add(stars);
 const leafGeo=new THREE.IcosahedronGeometry(1,1), trunkGeo=new THREE.CylinderGeometry(.13,.18,1,7);
 function tree(x,z,s,r){
   const g=new THREE.Group(); g.position.set(x,0,z); g.scale.setScalar(s);
@@ -799,7 +825,7 @@ function buildOutdoor(){
   outdoorGroup.clear();
   const r=rng(42);
   // テラス（建物のまわりの石畳）
-  const terrace=new THREE.Mesh(new THREE.PlaneGeometry(W+6,L+8), new THREE.MeshStandardMaterial({color:0xe7e1d6,roughness:1}));
+  const terrace=new THREE.Mesh(new THREE.PlaneGeometry(W+6,L+8), terraceMat);
   terrace.rotation.x=-Math.PI/2; terrace.position.y=-.015; outdoorGroup.add(terrace);
   // 木（建物にぶつからない位置に）
   for(let i=0;i<48;i++){
@@ -809,16 +835,48 @@ function buildOutdoor(){
     outdoorGroup.add(tree(x,z,.8+r()*.9,r));
   }
   // 遠くの丘
-  const hillMat=new THREE.MeshStandardMaterial({color:0x8fb07f,roughness:1});
   for(let i=0;i<9;i++){ const a=i/9*Math.PI*2+r()*.3; const h=new THREE.Mesh(new THREE.SphereGeometry(1,24,12),hillMat);
     h.scale.set(40+r()*30,10+r()*12,40+r()*30); h.position.set(Math.cos(a)*170,-2,Math.sin(a)*170); outdoorGroup.add(h); }
   // 雲
-  const cloudMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.92,fog:false});
   for(let i=0;i<10;i++){ const g=new THREE.Group(); const a=r()*Math.PI*2, d=110+r()*90;
     g.position.set(Math.cos(a)*d, 45+r()*35, Math.sin(a)*d);
     for(let k=0;k<5;k++){ const s=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),cloudMat); const sc=5+r()*6; s.scale.set(sc*1.6,sc*.7,sc); s.position.set((k-2)*7+r()*3, r()*2, r()*4); g.add(s); }
     outdoorGroup.add(g); }
 }
+
+/* ---------- 時間帯の明るさ（実際の時刻・季節に合わせる） ---------- */
+const OUT_MATS=[ground.material, ...leafMats, trunkMat, hillMat, terraceMat];
+OUT_MATS.forEach(m=>{ m.userData.base=m.color.clone(); });
+const sstep=(a,b,x)=>{ const t=Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t); };
+function timeState(){
+  const now=new Date(), q=new URLSearchParams(location.search).get('time');
+  const h = q!==null && q!=='' ? Number(q) : now.getHours()+now.getMinutes()/60;
+  const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/864e5);
+  const daylen=12.2+2.35*Math.cos(2*Math.PI*(doy-172)/365), noon=11.75;   // 東京あたりの目安
+  const rise=noon-daylen/2, set=noon+daylen/2;
+  const d=sstep(rise-.6,rise+.8,h)*(1-sstep(set-.8,set+.6,h));
+  const tw=Math.max(Math.exp(-(((h-rise)/.75)**2)), Math.exp(-(((h-set)/.75)**2)));
+  return { d, tw, h };
+}
+const C=(x)=>new THREE.Color(x);
+function applyTimeOfDay(){
+  const { d, tw }=timeState(), n=1-d;
+  const top=C(0x0b1630).lerp(C(0x6fb0e3),d).lerp(C(0x5d6aa6),tw*.55);
+  const mid=C(0x16244a).lerp(C(0xa9d2ef),d).lerp(C(0xe8a07c),tw*.7);
+  const hor=C(0x223156).lerp(C(0xeaf3f6),d).lerp(C(0xf6b26c),tw*.8);
+  paintSky('#'+top.getHexString(),'#'+mid.getHexString(),'#'+hor.getHexString()); sky.material.map.needsUpdate=true;
+  scene.background.copy(hor); scene.fog.color.copy(hor);
+  sun.intensity=.1+1.4*d; sun.color.copy(C(0xfff4e0).lerp(C(0xffa060),tw*.8));
+  hemi.color.copy(C(0xffc98a).lerp(C(0xffffff),d)); hemi.groundColor.copy(C(0x5b4636).lerp(C(0xb7c39c),d)); hemi.intensity=1.2+.5*d;
+  OUT_MATS.forEach(m=>{ m.color.copy(m.userData.base).multiplyScalar(.14+.86*d).lerp(C(0x162038), n*.3); });
+  cloudMat.color.copy(C(0x353f5e).lerp(C(0xffffff),d).lerp(C(0xffc29a),tw*.6)); cloudMat.opacity=.45+.47*d;
+  stars.material.opacity=Math.pow(n,2)*.95;
+  wallMat.emissive.copy(C(0x6e461f).lerp(C(0x4a453d),d)); wallMat.emissiveIntensity=.5+.18*n;
+  lampMat.color.copy(C(0xffc672).lerp(C(0xefe9df),d));
+  shadeMat.emissive=C(0x7a4a18); shadeMat.emissiveIntensity=n*.6;
+  renderer.toneMappingExposure=1-.08*n;
+}
+setInterval(applyTimeOfDay, 5*60*1000);
 
 /* ---------- 文字の板 ---------- */
 function textTexture(lines, w=512, h=160, opts={}){
@@ -881,6 +939,12 @@ function buildRoom(){
   const roof=new THREE.Mesh(new THREE.PlaneGeometry(W,L), glassMat); roof.rotation.x=Math.PI/2; roof.position.y=H; roomGroup.add(roof);
   for(let z=-L/2+1; z<L/2; z+=1.4) box(W,.16,.12,beamMat,0,H,z);
   [-1,1].forEach(s=>box(.18,.2,L,beamMat,s*(W/2-.09),H,0));
+  // ペンダントライト（夜は電球色に灯る）
+  for(let z=-L/2+2.6; z<L/2-1.5; z+=2.8) [-1.7,1.7].forEach(x=>{
+    const cord=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.75,6), baseMat); cord.position.set(x,H-.38,z); roomGroup.add(cord);
+    const shade=new THREE.Mesh(new THREE.ConeGeometry(.2,.16,18,1,true), shadeMat); shade.position.set(x,H-.8,z); roomGroup.add(shade);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(.07,12,8), lampMat); bulb.position.set(x,H-.88,z); roomGroup.add(bulb);
+  });
   // 観葉植物
   [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>roomGroup.add(plant(sx*(W/2-.45), sz*(L/2-1.05))));
   // 奥に立てる看板
@@ -893,6 +957,7 @@ function buildRoom(){
   box(2.72,.72,.05,beamMat,0,1.75,sz);
   [-1.15,1.15].forEach(x=>box(.06,1.4,.06,beamMat,x,.7,sz));
   buildOutdoor();
+  applyTimeOfDay();
 }
 
 /* 読み込み済みの作品（作品ID単位） */
@@ -999,8 +1064,94 @@ function buildShelves(books, loaded){
     [body,cover].forEach(m=>{ m.userData.item=item; pickables.push(m); });
     const wpos=new THREE.Vector3(); bk.getWorldPosition(wpos);
     const f=spots[u][2];
-    anchors.set(item.id,{pos:new THREE.Vector3(wpos.x,1.45,wpos.z), normal:new THREE.Vector3(0,0,f), dist:1.5});
+    anchors.set(item.id,{pos:new THREE.Vector3(wpos.x,1.45,wpos.z), normal:new THREE.Vector3(0,0,f), dist:1.5, top:wpos.y+h+.22});
   });
+}
+
+/* ---------- ふくろうの館長「ホウさん」 ---------- */
+let owl=null;
+function makeOwl(){
+  const g=new THREE.Group(), M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});
+  const S=(r,m,x,y,z,sx=1,sy=1,sz=1)=>{ const o=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),m); o.position.set(x,y,z); o.scale.set(sx,sy,sz); return o; };
+  const wood=M(0x9b7653);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,1.05,10),wood); pole.position.y=.525;
+  const foot=new THREE.Mesh(new THREE.CylinderGeometry(.28,.32,.06,20),wood); foot.position.y=.03;
+  const perch=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.5,10),wood); perch.rotation.z=Math.PI/2; perch.position.y=1.06;
+  g.add(pole,foot,perch);
+  const bird=new THREE.Group(); bird.position.y=1.32; g.add(bird);
+  bird.add(S(.27,M(0x9a6a43),0,0,0,1,1.12,.9));
+  bird.add(S(.19,M(0xead6b2),0,-.03,.15,1,1.1,.5));
+  bird.add(S(.16,M(0x86593a),-.25,.0,0,.45,1,.75), S(.16,M(0x86593a),.25,.0,0,.45,1,.75));
+  const feetM=M(0xe0a13a); bird.add(S(.05,feetM,-.08,-.29,.1,1.3,.6,1), S(.05,feetM,.08,-.29,.1,1.3,.6,1));
+  const bow=M(0xc8693f); const b1=new THREE.Mesh(new THREE.ConeGeometry(.05,.09,4),bow); b1.rotation.z=Math.PI/2; b1.position.set(-.045,.16,.2);
+  const b2=b1.clone(); b2.rotation.z=-Math.PI/2; b2.position.x=.045; bird.add(b1,b2, S(.022,bow,0,.16,.215));
+  const head=new THREE.Group(); head.position.y=.33; bird.add(head);
+  head.add(S(.22,M(0xa8754a),0,0,0,1,.92,.95));
+  const faceM=M(0xf7efe0), eyeM=new THREE.MeshBasicMaterial({color:0x2b1d12});
+  const eyes=[];
+  [-1,1].forEach(s=>{ head.add(S(.085,faceM,s*.085,.01,.165,1,1,.45)); const e=S(.042,eyeM,s*.085,.012,.2,1,1,.5); head.add(e); eyes.push(e);
+    const tuft=new THREE.Mesh(new THREE.ConeGeometry(.05,.13,8),M(0x86593a)); tuft.position.set(s*.14,.2,0); tuft.rotation.z=-s*.5; head.add(tuft); });
+  const beak=new THREE.Mesh(new THREE.ConeGeometry(.03,.07,8),feetM); beak.rotation.x=Math.PI; beak.position.set(0,-.05,.21); head.add(beak);
+  g.traverse(o=>{ if(o.isMesh) o.userData.npc=true; });
+  g.userData={ bird, head, eyes };
+  return g;
+}
+function owlPoint(){ return { x:2.5, z:L/2-3.9 }; }
+function placeOwl(){
+  if(!owl) owl=makeOwl();
+  const p=owlPoint(), s=startPoint(); owl.position.set(p.x,0,p.z); owl.scale.setScalar(.8); owl.rotation.y=Math.atan2(s.x-p.x, s.z-p.z);
+  itemsGroup.add(owl); owl.traverse(o=>{ if(o.isMesh) pickables.push(o); });
+}
+const owlBubble=document.getElementById('owlBubble'); let owlTimer=null, owlLast='', owlGreeted=false;
+function owlLines(){
+  const h=Math.floor(timeState().h)%24;
+  const greet = h<4?'こんばんは。夜ふかしですね。': h<11?'おはようございます。': h<17?'こんにちは。': h<19?'こんばんは。夕方の光がきれいな時間です。':'こんばんは。夜の美術館へようこそ。';
+  const items=allItems().filter(i=>!i.sample), lines=[];
+  const where = viewOnly||familyMode() ? 'この美術館' : 'このお部屋';
+  lines.push(`${greet}館長のホウです。ゆっくり見ていってくださいね。`);
+  if(items.length) lines.push(`いま${where}には${items.length}点の作品があります。`);
+  else if(!auth.signedIn && !viewOnly) lines.push('いまは見本の展示です。ログインすると、あなたの作品を飾れますよ。');
+  else lines.push('まだ作品がありませんね。下のボタンから、最初の1点を飾ってみませんか？');
+  const unread=unreadItems().reduce((a,x)=>a+x.n,0);
+  if(unread) lines.push(`新しいコメントが${unread}件届いていますよ。下のお知らせから見られます。`,`ご家族からコメントが来ています。のぞいてみてください。`);
+  const byNew=items.slice().sort((a,b)=>(b.created||0)-(a.created||0));
+  if(byNew[0]) lines.push(`いちばん新しい作品は「${byNew[0].title||'無題'}」です。`);
+  const dated=items.filter(i=>i.date).sort((a,b)=>a.date.localeCompare(b.date));
+  if(dated[0]) lines.push(`いちばん古い思い出は、${dated[0].date.slice(0,4)}年の「${dated[0].title||'無題'}」ですね。`);
+  const pick=items[Math.floor(Math.random()*items.length)];
+  if(pick){ const who=pick.author?`${pick.author}さんの`:''; lines.push(`${who}「${pick.title||'無題'}」、わたしのお気に入りなんです。`); }
+  const spin=items.find(i=>i.type==='spin'); if(spin) lines.push(`「${spin.title||'無題'}」は、台のまわりを歩くと後ろ側も見えますよ。`);
+  const book=items.find(i=>i.type==='book'); if(book) lines.push(`奥の本棚の「${book.title||'無題'}」、ぜひ開いてみてください。`);
+  if(familyMode()&&!viewOnly) lines.push('ご家族の皆さんの作品が並んでいます。気に入った作品にはコメントをどうぞ。');
+  if(!familyMode()&&!viewOnly&&auth.signedIn) lines.push('ここはあなただけのお部屋です。気が向いたら、家族の美術館にも出品してみてください。');
+  if(viewOnly) lines.push('遠くからようこそ。作品をタップすると、大きく見られますよ。');
+  lines.push('手放した物も、ここではずっと飾っておけますよ。','思い出は、写真にすれば場所を取りません。','片付け、おつかれさまです。ひと休みしていってください。',
+    h>=19||h<4 ? '夜は明かりを電球色にしています。落ち着くでしょう？' : '天井から差しこむ光がきれいでしょう？');
+  return lines;
+}
+function owlTalk(first){
+  if(first && document.querySelector('.overlay.show')){ setTimeout(()=>owlTalk(true),1500); return; }
+  const lines=owlLines(); let t;
+  if(first) t=lines[0];
+  else { const pool=lines.slice(1).filter(x=>x!==owlLast); t=pool[Math.floor(Math.random()*pool.length)]||lines[0]; }
+  owlLast=t; owlBubble.innerHTML=`<b>🦉 館長 ホウ</b>${esc(t)}`; owlBubble.style.display='block';
+  clearTimeout(owlTimer); owlTimer=setTimeout(()=>{ owlBubble.style.display='none'; }, 7000);
+  if(owl){ owl.userData.hop=performance.now(); }
+}
+const owlHead=new THREE.Vector3(), owlProj=new THREE.Vector3();
+function updateOwl(now){
+  if(!owl || !owl.parent) { owlBubble.style.display='none'; return; }
+  const u=owl.userData, t=now/1000;
+  u.bird.position.y=1.32+Math.sin(t*1.6)*.012 + (u.hop && now-u.hop<500 ? Math.sin((now-u.hop)/500*Math.PI)*.08 : 0);
+  const ang=Math.atan2(pos.x-owl.position.x, pos.z-owl.position.z)-owl.rotation.y;
+  const a=Math.atan2(Math.sin(ang),Math.cos(ang)); u.head.rotation.y+= (Math.max(-1.3,Math.min(1.3,a))-u.head.rotation.y)*.08;
+  const blink=(t%4.2)<.12; u.eyes.forEach(e=>e.scale.y= blink ? .15 : 1);
+  if(owlBubble.style.display==='block'){
+    owl.getWorldPosition(owlHead); owlHead.y+=1.62;
+    owlProj.copy(owlHead).project(camera);
+    if(owlProj.z>1){ owlBubble.style.visibility='hidden'; }
+    else { const hw=owlBubble.offsetWidth/2+8; owlBubble.style.visibility='visible'; owlBubble.style.left=Math.max(hw,Math.min(innerWidth-hw,(owlProj.x+1)/2*innerWidth))+'px'; owlBubble.style.top=Math.max(110,(1-owlProj.y)/2*innerHeight)+'px'; }
+  }
 }
 
 let building=Promise.resolve();
@@ -1030,17 +1181,18 @@ async function doBuild(items){
     g.position.set(side*(W/2-.001), 1.65, z);
     g.rotation.y = side<0 ? Math.PI/2 : -Math.PI/2;
     itemsGroup.add(g);
-    anchors.set(item.id,{pos:new THREE.Vector3(side*W/2,1.6,z), normal:new THREE.Vector3(-side,0,0), dist:2.4});
+    anchors.set(item.id,{pos:new THREE.Vector3(side*W/2,1.6,z), normal:new THREE.Vector3(-side,0,0), dist:2.4, top:1.65+h/2+.32});
   });
 
   // 台座はあえてバラバラに配置（入口から全体が見渡せるように）。位置は作品ごとに毎回同じ
-  const zMin=-L/2+2.4, zMax=L/2-2.3, xMax=W/2-1.35, start=startPoint(), placed=[];
+  const zMin=-L/2+2.4, zMax=L/2-2.3, xMax=W/2-1.35, start=startPoint(), placed=[], owlP=owlPoint();
   stands.forEach((item,j)=>{
     const data=loaded.get(item.id); if(!data) return;
     const r=rng(hashStr(item.id)); let best=null, bestD=-1;
     for(let t=0;t<120;t++){
       const x=(r()*2-1)*xMax, z=zMin+r()*(zMax-zMin);
       let d=Math.hypot(start.x-x,start.z-z)-.8; placed.forEach(p=>{ d=Math.min(d, Math.hypot(p.x-x,p.z-z)); });
+      d=Math.min(d, Math.hypot(owlP.x-x,owlP.z-z)-.7);
       if(books.length>PER_TIER*TIERS*2) d=Math.min(d, Math.hypot(-2.45-x, L/2-.3-z)-.9);
       if(d>=1.6){ best={x,z}; break; } if(d>bestD){ bestD=d; best={x,z}; }
     }
@@ -1059,10 +1211,12 @@ async function doBuild(items){
     [ped,top,plaque].forEach(m=>{ m.userData.item=item; pickables.push(m); });
     holder.traverse(n=>{ if(n.isMesh){ n.userData.item=item; pickables.push(n); } });
     itemsGroup.add(g);
-    anchors.set(item.id,{pos:new THREE.Vector3(best.x,1.3,best.z), normal:new THREE.Vector3(Math.sin(rotY),0,Math.cos(rotY)), dist:1.8});
+    anchors.set(item.id,{pos:new THREE.Vector3(best.x,1.3,best.z), normal:new THREE.Vector3(Math.sin(rotY),0,Math.cos(rotY)), dist:1.8, top:pedH+.95});
   });
 
   buildShelves(books, loaded);
+  placeOwl();
+  refreshBubbles();
 
   const real=items.filter(i=>!i.sample).length;
   $('count').textContent = real ? `${real} 点` : ((auth.signedIn||viewOnly) ? '0 点' : '見本');
@@ -1125,6 +1279,7 @@ function tap(cx,cy){
   ray.setFromCamera(ndc,camera);
   const hit=ray.intersectObjects(pickables,false)[0];
   if(!hit) return;
+  if(hit.object.userData.npc){ owlTalk(false); return; }
   if(hit.object.userData.item){ openViewer(hit.object.userData.item); return; }
   if(hit.object===floorMesh){ goal=clampPos(hit.point.clone()); goalYaw=null; hideHint(); }
 }
@@ -1176,6 +1331,8 @@ function loop(){
     if(k2!==u.kb){ u.kb=k2; u.picB.material.map=u.texs[k2]; u.picB.material.needsUpdate=true; }
     const t=fadeCurve(f); u.pic.material.opacity=1-t; u.picB.material.opacity=t;
   });
+  updateOwl(performance.now());
+  bubbleGroup.children.forEach((b,i)=>{ b.position.y=b.userData.y+Math.sin(now*2.2+i)*.04; });
   renderer.render(scene,camera);
   if(mini){ mini.controls.update(); mini.renderer.render(mini.scene,mini.camera); }
   requestAnimationFrame(loop);
@@ -1204,6 +1361,7 @@ async function refreshRoom(){
   const sh=myShare(); if(!sh || !API_KEY){ roomItems=[]; roomMembers=[]; return null; }
   const map=await loadRoom(sh.members||[], sh.publicId);
   applyRoom(map); lsSet('omoide.room', JSON.stringify([...map]));
+  setTimeout(updateCommentNotice,0);
   // たどって見つかった家族を自分の名簿にも追加（つながりを強くする）
   const add=[...map.keys()].filter(id=>!(sh.members||[]).includes(id));
   if(add.length && auth.valid){ try{ remote=await drive.mutate(d=>{ if(d.share){ d.share.members=[...new Set([...(d.share.members||[]),...add])]; } }); saveLocalIndex(); }catch(e){} }
@@ -1496,7 +1654,7 @@ async function openViewer(item){
   $('vDir').classList.toggle('on', (item.spinDir||1)<0);
   $('vDelete').style.display=readOnly?'none':'';
   $('vDelete').classList.remove('armed'); $('vDelete').textContent='しまう（削除）';
-  $('cInput').value=''; drawComments(item); refreshCommentsFor(item);
+  $('cInput').value=''; viewNew=new Set(unreadFor(item).map(c=>c.id)); drawComments(item); markRead(item); refreshCommentsFor(item);
   show('viewSheet');
   try{
     const d=await loadItem(item);
@@ -1685,6 +1843,46 @@ $('joinGo').onclick=async()=>{
 $('viewInfoOk').onclick=()=>show('viewInfoSheet',false);
 $('viewInfoMine').onclick=()=>{ location.href=APP_URL; };
 
+/* ---------------- 新しいコメントのお知らせ ---------------- */
+const CREAD='omoide.cread';
+function readMap(){ try{ return JSON.parse(lsGet(CREAD)||'{}'); }catch(e){ return {}; } }
+function commentsSince(){ let v=Number(lsGet('omoide.csince')||0); if(!v){ v=Date.now()-7*864e5; lsSet('omoide.csince',String(v)); } return v; }
+function unreadFor(item){
+  if(viewOnly || !commentsVisible(item)) return [];
+  const t=commentTarget(item); if(!t) return [];
+  const since=readMap()[t]||commentsSince();
+  return commentsFor(item).filter(c=>!c.mine && c.at>since);
+}
+function markRead(item){ const t=commentTarget(item); if(!t) return; const m=readMap(); m[t]=Date.now(); lsSet(CREAD, JSON.stringify(m)); updateCommentNotice(); }
+let unreadIds=new Set(), viewNew=new Set();
+function unreadItems(){
+  if(viewOnly || !myShare() || !auth.signedIn) return [];
+  return remote.items.filter(i=>i.shared!==false).concat(roomItems)
+    .map(i=>{ const u=unreadFor(i); return { item:i, n:u.length, last:u.reduce((a,c)=>Math.max(a,c.at),0) }; })
+    .filter(x=>x.n>0).sort((a,b)=>b.last-a.last);
+}
+function updateCommentNotice(){
+  const u=unreadItems(), total=u.reduce((a,x)=>a+x.n,0), el=$('cmtNotice');
+  if(total){ el.textContent=`💬 新しいコメント ${total}件`; el.classList.add('show'); } else el.classList.remove('show');
+  unreadIds=new Set(u.map(x=>x.item.id)); refreshBubbles();
+}
+$('cmtNotice').onclick=async()=>{
+  const u=unreadItems(); if(!u.length) return;
+  if(!familyMode() && u.some(x=>x.item.pub)) await setMode('family');
+  listSort='comment'; drawList(); show('listSheet');
+};
+const bubbleGroup=new THREE.Group(); scene.add(bubbleGroup);
+let bubbleTex=null;
+function refreshBubbles(){
+  bubbleGroup.clear();
+  if(!bubbleTex){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
+    x.fillStyle='#c8693f'; x.beginPath(); x.arc(64,58,50,0,7); x.fill(); x.beginPath(); x.moveTo(40,96); x.lineTo(34,124); x.lineTo(70,102); x.fill();
+    x.font='54px sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText('💬',64,60); bubbleTex=new THREE.CanvasTexture(c); bubbleTex.colorSpace=THREE.SRGBColorSpace; }
+  unreadIds.forEach(id=>{ const a=anchors.get(id); if(!a) return;
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:bubbleTex,transparent:true,depthTest:false}));
+    sp.scale.set(.34,.34,1); const p=a.pos.clone().addScaledVector(a.normal,.12); sp.position.set(p.x,a.top||2,p.z); sp.userData.y=a.top||2; sp.renderOrder=10; bubbleGroup.add(sp); });
+}
+
 /* ---------------- コメント ---------------- */
 // コメントは書いた人のドライブ（公開データ）に保存し、家族の画面でまとめて表示する
 function commentTarget(item){
@@ -1710,10 +1908,10 @@ function drawComments(item){
   const box=$('vComments');
   if(!commentsVisible(item)){ box.style.display='none'; return; }
   box.style.display='';
-  const list=commentsFor(item), el=$('cList');
+  const list=commentsFor(item), el=$('cList'), newIds=new Set([...unreadFor(item).map(c=>c.id), ...viewNew]);
   el.innerHTML = list.length ? '' : '<div class="cempty">まだコメントはありません。最初のひとことをどうぞ。</div>';
   list.forEach(c=>{
-    const d=document.createElement('div'); d.className='cmt';
+    const d=document.createElement('div'); d.className='cmt'+(newIds.has(c.id)?' new':'');
     d.innerHTML=`<div class="who"><b>${esc(c.name||'家族')}</b><span>${fmtStamp(c.at)}</span>${c.mine?'<button class="del">消す</button>':''}</div><div class="txt">${esc(c.text)}</div>`;
     if(c.mine) d.querySelector('.del').onclick=()=>deleteComment(c.id, item);
     el.appendChild(d);
@@ -1725,7 +1923,7 @@ let lastRoomRefresh=0;
 async function refreshCommentsFor(item){
   if(viewOnly || !myShare() || Date.now()-lastRoomRefresh<20000) return;
   lastRoomRefresh=Date.now();
-  try{ await refreshRoom(); if(current && current.id===item.id) drawComments(item); }catch(e){}
+  try{ await refreshRoom(); if(current && current.id===item.id){ drawComments(item); markRead(item); } }catch(e){}
 }
 $('cSend').onclick=async()=>{
   const item=latest(current); if(!item) return;
@@ -1772,6 +1970,7 @@ const TYPE_LABEL={photo:'写真・絵', spin:'くるっと写真', model:'3D', b
 function drawList(){
   const items=allItems().slice();
   if(listSort==='date') items.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.created||0)-(a.created||0));
+  else if(listSort==='comment'){ const last=it=>unreadFor(it).reduce((a,c)=>Math.max(a,c.at),0); items.sort((a,b)=>last(b)-last(a) || (b.created||0)-(a.created||0)); }
   else items.sort((a,b)=>(b.created||0)-(a.created||0));
   const real=items.filter(i=>!i.sample).length;
   $('listTitle').textContent = real ? `作品の一覧（${real}点）` : '作品の一覧（見本）';
@@ -1782,7 +1981,7 @@ function drawList(){
     const row=document.createElement('button'); row.className='wrow';
     const th=document.createElement('div'); th.className='wthumb'+(it.cutout?' cut':''); th.textContent = it.type==='model' ? '🧊' : '';
     const info=document.createElement('div'); info.className='winfo';
-    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.author?'作：'+esc(it.author)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${it.type==='book'?'📚 '+esc(it.category||'本棚'):(TYPE_LABEL[it.type]||'')}${myShare()&&!familyMode()&&it.shared!==false?'<span class="wbadge">👪 出品中</span>':''}${isFresh(it)?'<span class="wbadge">✨ 新しく出品</span>':''}${(()=>{ const n=commentsVisible(it)?commentsFor(it).length:0; return n?`<span class="wbadge">💬 ${n}</span>`:''; })()}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
+    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.author?'作：'+esc(it.author)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${it.type==='book'?'📚 '+esc(it.category||'本棚'):(TYPE_LABEL[it.type]||'')}${myShare()&&!familyMode()&&it.shared!==false?'<span class="wbadge">👪 出品中</span>':''}${isFresh(it)?'<span class="wbadge">✨ 新しく出品</span>':''}${(()=>{ const n=commentsVisible(it)?commentsFor(it).length:0; const u=unreadFor(it).length; return n?`<span class="wbadge"${u?' style="background:#c8693f;color:#fff"':''}>💬 ${n}${u?'（新着'+u+'）':''}</span>`:''; })()}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
     row.append(th,info);
     row.onclick=()=>openViewer(it);
     box.appendChild(row);
@@ -2161,6 +2360,7 @@ $('optShare').onclick=()=>{ const p=pending; if(!p) return; p.share=!p.share; p.
     loadRoomCache();
     await render(true); resetView();
     $('loading').classList.add('hide'); loop();
+    setTimeout(()=>{ if(!owlGreeted){ owlGreeted=true; owlTalk(true); } }, 2500);
     if(!viewItems.length) busy(true,'美術館を読み込んでいます…');
     try{ await refreshRoom(); await render(); if(!viewItems.length && !viewName) toast('この美術館は見つかりませんでした（共有が終わった可能性があります）',5000); }
     catch(e){ toast(String(e.message)==='network'?'オフラインのため、前回の内容を表示しています':'読み込めませんでした',4000); }
@@ -2176,6 +2376,7 @@ $('optShare').onclick=()=>{ const p=pending; if(!p) return; p.share=!p.share; p.
   await render(true); resetView();
   $('loading').classList.add('hide');
   loop();
+  setTimeout(()=>{ if(!owlGreeted){ owlGreeted=true; owlTalk(true); } }, 1800);
 
   if(result==='denied'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='ログインがキャンセルされました。'; return; }
   if(result==='scope'){ show('welcomeSheet'); $('loginErr').style.display='block'; $('loginErr').textContent='「Googleドライブのファイルの作成・編集」にチェックを入れて、もう一度ログインしてください。'; return; }
