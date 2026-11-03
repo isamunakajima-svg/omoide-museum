@@ -175,6 +175,13 @@
   @keyframes pop{from{transform:translate(-50%,10px);opacity:0}}
   .cmt.new{background:#fff6ee;margin:0 -6px;padding:8px 6px;border-radius:8px}
   .cmt.new .who:after{content:"NEW";font-size:10.5px;font-weight:700;color:#fff;background:#c8693f;border-radius:6px;padding:1px 6px}
+  #termsSheet .sheet{max-height:92vh;overflow:auto}
+  .terms{list-style:none;padding:0;margin:0 0 12px}
+  .terms li{background:#fff;border:1.5px solid #ece3d6;border-radius:14px;margin-bottom:9px}
+  .terms label{display:flex;gap:11px;align-items:flex-start;padding:11px 12px;margin:0;font-size:13.5px;line-height:1.65;color:var(--ink);cursor:pointer}
+  .terms input{width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:var(--accent)}
+  .terms b{display:block;font-size:14px;margin-bottom:2px}
+  .terms li.on{border-color:var(--accent);background:#fff9f4}
   input[type=file]{display:none}
 </style>
 <script type="importmap">
@@ -239,6 +246,22 @@
     <div class="note err" id="loginErr" style="display:none"></div>
     <button class="link" id="welcomeLater">先に見本を見る</button>
     <div class="small">Googleアカウントがない方は <a href="https://accounts.google.com/signup" target="_blank" rel="noopener">こちらから無料で作成</a> できます。<br><a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a></div>
+  </div>
+</div>
+
+<!-- ご利用にあたって（最初に1回だけ） -->
+<div class="overlay top" id="termsSheet">
+  <div class="sheet">
+    <h2>ご利用の前に</h2>
+    <p class="lead">はじめる前に、次の内容をご確認ください。すべてにチェックを入れると進めます。</p>
+    <ul class="terms">
+      <li><label><input type="checkbox"><span><b>無料の特典です</b>本アプリは整理収納サービスの無料のおまけです。動作やデータの保存を保証するものではなく、ご利用によって生じた損害について、提供者は法令で認められる範囲で責任を負いません。</span></label></li>
+      <li><label><input type="checkbox"><span><b>予告なく変更・終了することがあります</b>機能の変更や、サービスの提供終了を予告なく行う場合があります。終了しても、作品の写真はあなたのGoogleドライブに残ります。</span></label></li>
+      <li><label><input type="checkbox"><span><b>データはご自身で管理してください</b>作品はあなたのGoogleドライブに保存され、容量もあなたのアカウントのものを使います。写真に残したあと現物を手放すかどうかは、ご自身で判断してください。データが消えても、手放した物は戻りません。</span></label></li>
+      <li><label><input type="checkbox"><span><b>共有するときは気をつけます</b>家族の美術館や「見るだけリンク」の作品は、リンクを知っている人なら見られます。ほかの人が写った写真や、住所・成績などの個人情報を出すときはご注意ください。ほかの人の作品を載せるときは、本人の了解を得てください。</span></label></li>
+      <li><label><input type="checkbox"><span><b>プライバシーポリシーを確認しました</b><a href="privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>の内容を確認しました。18歳未満の方は、保護者の方の同意を得てご利用ください。</span></label></li>
+    </ul>
+    <div class="row"><button class="btn ghost" id="termsBack">もどる</button><button class="btn primary" id="termsGo" disabled>同意してはじめる</button></div>
   </div>
 </div>
 
@@ -487,7 +510,22 @@ const auth = {
   get signedIn(){ return lsGet('omoide.signedIn')==='1'; },
   get valid(){ return !!this.token && Date.now() < this.exp - 60000; },
 };
+const TERMS_VER='2026-11-03';
+const termsOK = () => lsGet('omoide.terms')===TERMS_VER;
+let termsNext=null;
+function askTerms(next, canBack=true){
+  termsNext=next; $('termsBack').style.display = canBack ? '' : 'none';
+  document.querySelectorAll('#termsSheet input').forEach(c=>{ c.checked=false; c.closest('li').classList.remove('on'); });
+  $('termsGo').disabled=true; show('termsSheet');
+}
+document.querySelectorAll('#termsSheet input').forEach(c=>c.onchange=()=>{
+  c.closest('li').classList.toggle('on', c.checked);
+  $('termsGo').disabled = ![...document.querySelectorAll('#termsSheet input')].every(x=>x.checked);
+});
+$('termsBack').onclick=()=>{ show('termsSheet',false); termsNext=null; };
+$('termsGo').onclick=()=>{ lsSet('omoide.terms',TERMS_VER); show('termsSheet',false); const f=termsNext; termsNext=null; if(f) f(); };
 function startLogin(silent){
+  if(!silent && !termsOK() && !isInApp){ askTerms(()=>startLogin(false)); return; }
   if(!GOOGLE_CLIENT_ID){ toast('アプリの設定（GOOGLE_CLIENT_ID）がまだです',4000); return; }
   if(isInApp){ show('inappSheet'); return; }
   const st = Math.random().toString(36).slice(2);
@@ -1761,7 +1799,7 @@ function openFamily(){
     const names=[sh.name||'わたし'].concat(roomMembers.map(m=>m.name));
     const inv=inviteUrl(sh.publicId), vw=viewUrl(sh.publicId);
     box.innerHTML=`<div class="meta">メンバー（${names.length}人）</div><div class="members">${names.map((x,i)=>`<span>${esc(x)}${i===0?'（わたし）':''}</span>`).join('')}</div>
-      <div class="sharebox"><b>👪 家族を招待する</b><p>家族が開いてGoogleでログインし「参加する」を押すと、自分の作品も飾れるようになります。</p>
+      <div class="sharebox"><b>👪 家族を招待する</b><p>家族が開いてGoogleでログインし「参加する」を押すと、自分の作品も飾れるようになります。</p><p class="minor-note" style="font-size:12px;color:var(--muted);margin:6px 0 8px">※ 18歳未満のご家族を招待する場合は、招待する方が保護者として利用に同意したものとします。</p>
         <div class="row"><a class="btn line sm" target="_blank" rel="noopener" href="${lineHref(`「${sh.roomName||'家族'}」の家族の美術館に招待します。開いてGoogleでログインし、「参加する」を押してください。\n${inv}`)}">LINEで招待</a><button class="btn ghost sm" id="copyInvite">リンクをコピー</button></div></div>
       <div class="sharebox"><b>👀 親戚に見せる（見るだけ）</b><p>ログインなしで、美術館に並んだ作品を見られます。作品の追加や変更はできません。</p>
         <div class="row"><a class="btn line sm" target="_blank" rel="noopener" href="${lineHref(`${sh.roomName||'家族'}の「おもいで美術館」です。ログインなしで見られます。\n${vw}`)}">LINEで送る</a><button class="btn ghost sm" id="copyView">リンクをコピー</button></div></div>
@@ -2395,6 +2433,7 @@ $('optShare').onclick=()=>{ const p=pending; if(!p) return; p.share=!p.share; p.
     }
     needAuth(); return;
   }
+  if(!termsOK()) askTerms(null, false);
   await sync();
   const pj=lsGet('omoide.pendingJoin');
   if(pj){ lsSet('omoide.pendingJoin',null); await handleJoin(pj); }
