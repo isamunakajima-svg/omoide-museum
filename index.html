@@ -142,6 +142,29 @@
   .spinwrap{position:relative;display:flex;align-items:center;justify-content:center;width:100%;transition:transform .05s linear}
   .spinwrap img{max-width:100%;max-height:52vh;display:block}
   .spinwrap img.spinB{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+  .bar .btn{padding:12px 14px;font-size:14px;gap:6px}
+  .bar .btn svg{width:18px;height:18px}
+  .bookview{position:relative;width:100%;height:50vh;overflow:hidden;touch-action:none;background:#e9e1d5;border-radius:12px;display:flex;align-items:center;justify-content:center}
+  .bookview img.page{max-width:94%;max-height:94%;object-fit:contain;box-shadow:0 4px 18px #3a2e2540;background:#fff;transform-origin:center center;transition:opacity .18s;user-select:none;-webkit-user-drag:none;pointer-events:none}
+  .bookview .pg{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:56px;border:0;border-radius:10px;background:#3a2e2599;color:#fff;font-size:24px;cursor:pointer;z-index:2}
+  .bookview .pg.prev{left:6px} .bookview .pg.next{right:6px}
+  .bookview .pg:disabled{opacity:.15}
+  .bookview .pgcount{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:#3a2e25cc;color:#fff;font-size:12.5px;padding:4px 10px;border-radius:999px;z-index:2}
+  .bookview .pgfull{position:absolute;top:8px;right:8px;border:0;background:#3a2e25cc;color:#fff;font:inherit;font-size:12.5px;padding:6px 10px;border-radius:999px;z-index:2;cursor:pointer}
+  .bookview.full{position:fixed;inset:0;height:auto;border-radius:0;z-index:45;background:#1d1814}
+  .preview.bk{background:none;display:block}
+  #vComments{margin-top:14px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px}
+  #vComments h3{margin:0 0 8px;font-size:14.5px}
+  .cmt{padding:8px 0;border-top:1px solid #f0e8dd;font-size:14px;line-height:1.6}
+  .cmt:first-child{border-top:0}
+  .cmt .who{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .cmt .who b{color:var(--ink);font-size:12.5px}
+  .cmt .del{margin-left:auto;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
+  .cmt .txt{white-space:pre-wrap;word-break:break-word}
+  .cempty{font-size:13px;color:var(--muted);padding:4px 0 8px}
+  .crow{display:flex;gap:8px;margin-top:8px}
+  .crow input{flex:1;min-width:0}
+  .crow .btn{flex:none;padding:10px 14px;border-radius:12px;box-shadow:none}
   input[type=file]{display:none}
 </style>
 <script type="importmap">
@@ -170,16 +193,22 @@
 <div class="bar hidden" id="bar">
   <button class="btn primary" id="addPhoto">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-    写真・絵を飾る
+    写真・絵
   </button>
   <button class="btn ghost" id="add3d">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
-    立体を飾る
+    立体
+  </button>
+  <button class="btn ghost" id="addBook">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H20v-3"/><path d="M8 7h8"/></svg>
+    本棚
   </button>
 </div>
 <input type="file" id="filePhoto" accept="image/*">
 <input type="file" id="fileSpin" accept="image/*" multiple>
 <input type="file" id="file3d" accept=".glb,model/gltf-binary">
+<input type="file" id="fileBookImg" accept="image/*" multiple>
+<input type="file" id="filePdf" accept="application/pdf,.pdf">
 
 <!-- ようこそ・ログイン -->
 <div class="overlay" id="welcomeSheet">
@@ -245,6 +274,18 @@
   </div>
 </div>
 
+<!-- 本棚の追加方法 -->
+<div class="overlay" id="menuBook">
+  <div class="sheet">
+    <h2>本棚に入れる</h2>
+    <p class="lead">アルバム、卒業アルバム、運動会や文化祭のしおり、文集、成長の記録、通信簿など、紙の思い出を本のように残せます。</p>
+    <button class="choice" id="bookCam"><span class="ic">📷</span><div><b>カメラでページを撮る</b><span>1ページずつ撮ります。撮ったあと、スキャンしたようにくっきり補正できます。</span></div></button>
+    <button class="choice" id="bookImg"><span class="ic">🖼️</span><div><b>スマホの写真から選ぶ</b><span>撮ってある写真をまとめて選べます（選んだ順・撮った順に並びます）。</span></div></button>
+    <button class="choice" id="bookPdf"><span class="ic">📄</span><div><b>PDFを選ぶ</b><span>iPhoneの「メモ」やGoogleドライブでスキャンしたPDFを、そのまま本にできます。</span></div></button>
+    <button class="link" id="menuBookCancel">やめる</button>
+  </div>
+</div>
+
 <!-- 立体の追加方法 -->
 <div class="overlay" id="menu3d">
   <div class="sheet">
@@ -261,9 +302,15 @@
     <h2 id="addTitle">作品を飾る</h2>
     <div class="preview" id="addPreview"></div>
     <div class="opts" id="spinOpts" style="display:none"><button class="chip on" id="optCut">✂️ 背景を切り抜く</button><button class="chip" id="optDir">🔄 回る向きを反転</button></div>
+    <div id="bookOpts" style="display:none">
+      <div class="opts"><button class="chip" id="optEnh">✨ くっきり補正</button></div>
+      <label>種類</label>
+      <div class="opts" id="bookCats"></div>
+    </div>
+    <div class="opts" id="addShareOpts" style="display:none"><button class="chip" id="optShare"></button></div>
     <label for="inTitle">タイトル</label>
     <input type="text" id="inTitle" placeholder="例：はじめて描いた家族の絵" maxlength="30">
-    <label for="inAuthor">作者（だれの作品？）</label>
+    <label for="inAuthor" id="inAuthorLabel">作者（だれの作品？）</label>
     <div class="opts authors" id="authorChips"></div>
     <input type="text" id="inAuthor" placeholder="例：はると（新しい人は入力）" maxlength="12">
     <label for="inDate">いつの思い出？</label>
@@ -331,7 +378,13 @@
   <div class="sheet">
     <div class="preview" id="viewPreview"></div>
     <div class="opts" id="vSpinOpts" style="display:none"><button class="chip" id="vDir">🔄 回る向きを反転</button></div>
+    <div id="vBookOpts" style="display:none"><label>種類</label><div class="opts" id="vBookCats"></div></div>
     <div class="opts" id="vShareOpts" style="display:none"><button class="chip on" id="vShare">👪 家族の美術館に飾る</button></div>
+    <div id="vComments" style="display:none">
+      <h3>💬 家族のコメント</h3>
+      <div id="cList"></div>
+      <div class="crow" id="cForm"><input type="text" id="cInput" maxlength="200" placeholder="コメントを書く（例：なつかしい！）"><button class="btn primary" id="cSend">送る</button></div>
+    </div>
     <label for="vTitle">タイトル</label>
     <input type="text" id="vTitle" maxlength="30">
     <label for="vAuthor">作者</label>
@@ -359,7 +412,7 @@
     <img id="camGhost" alt="">
     <div id="flash"></div>
     <div class="camTop"><button id="camClose">やめる</button><span id="camCount">0 枚</span><button id="camDone" disabled>完了</button></div>
-    <div class="camGuide">まず正面から1枚。そこから作品のまわりを<b>右へ</b>少しずつ回りながら、一周で12〜16枚撮ります（枚数が多いほど、なめらかに回ります）。うすく見える前の写真を目安に、無地の壁や床の前で撮ると背景がきれいに切り抜けます。</div>
+    <div class="camGuide" id="camGuide">まず正面から1枚。そこから作品のまわりを<b>右へ</b>少しずつ回りながら、一周で12〜16枚撮ります（枚数が多いほど、なめらかに回ります）。うすく見える前の写真を目安に、無地の壁や床の前で撮ると背景がきれいに切り抜けます。</div>
   </div>
   <div class="camBottom">
     <div id="camThumbs"></div>
@@ -533,14 +586,16 @@ const drive = {
 };
 
 /* ---------------- 家族の美術館：公開データの読み書き ---------------- */
-const fileIdsOf = it => it.type==='spin' ? (it.fileIds||[]) : [it.fileId].filter(Boolean);
+const isMulti = t => t==='spin' || t==='book';
+const fileIdsOf = it => isMulti(it.type) ? (it.fileIds||[]) : [it.fileId].filter(Boolean);
 // 家族や親戚が読む「公開データ」（共有している作品だけ）
 function buildPublic(d){
   const sh=d.share;
   return { kind:'omoide-public', version:1, name:sh.name||'', museum:d.name||'',
     room:{ name:sh.roomName||'', members:(sh.members||[]).filter(x=>x!==sh.publicId) },
-    items:d.items.filter(it=>it.shared!==false).map(it=>({ id:it.id, type:it.type, title:it.title||'', author:it.author||'', date:it.date||'', memo:it.memo||'', created:it.created,
-      fileId:it.fileId, fileIds:it.fileIds, cutout:it.cutout, spinDir:it.spinDir })) };
+    items:d.items.filter(it=>it.shared!==false).map(it=>({ id:it.id, type:it.type, category:it.category, title:it.title||'', author:it.author||'', date:it.date||'', memo:it.memo||'', created:it.created,
+      fileId:it.fileId, fileIds:it.fileIds, cutout:it.cutout, spinDir:it.spinDir, sharedAt:it.sharedAt })),
+    comments:(d.comments||[]).slice(-1000).map(c=>({ id:c.id, target:c.target, text:c.text, at:c.at, name:c.name||sh.name||'' })) };
 }
 // ログインなしで読む（APIキー）
 async function pfetch(id){
@@ -591,9 +646,16 @@ async function outboxPut(it){ mem.outbox.set(it.id,it); await idbReq('outbox','r
 async function outboxDel(id){ mem.outbox.delete(id); await idbReq('outbox','readwrite',s=>s.delete(id)); }
 async function clearLocal(){ mem.files.clear(); mem.outbox.clear(); await idbReq('files','readwrite',s=>s.clear()); await idbReq('outbox','readwrite',s=>s.clear()); }
 
+async function getBlobAt(item, i){
+  if(item.local) return isMulti(item.type) ? item.blobs[i] : item.blob;
+  const id=fileIdsOf(item)[i]; if(!id) throw new Error('nofile');
+  let b=await cacheGet(id);
+  if(!b){ b = item.pub ? await (await pfetch(id)).blob() : await drive.download(id); cachePut(id,b); }
+  return b;
+}
 async function getBlobs(item){
-  if(item.local) return item.type==='spin' ? item.blobs : [item.blob];
-  const ids = item.type==='spin' ? item.fileIds : [item.fileId];
+  if(item.local) return isMulti(item.type) ? item.blobs : [item.blob];
+  const ids = fileIdsOf(item);
   const out=[];
   for(const id of ids){
     let b=await cacheGet(id);
@@ -768,12 +830,15 @@ function textTexture(lines, w=512, h=160, opts={}){
     let s=l.text; while(x.measureText(s).width>w-30 && s.length>1) s=s.slice(0,-2)+'…'; x.fillText(s,w/2,l.y); });
   const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t;
 }
+const FRESH_DAYS=14;
+function isFresh(item){ return !!(item.sharedAt && familyMode() && Date.now()-item.sharedAt < FRESH_DAYS*864e5); }
 // 名札：作品名／作者／日付
 function plaqueFor(item, w=.46){
   const hasA=!!item.author, H=hasA?214:160, h=w*H/512;
   const lines=[{text:item.title||'無題',size:44,y:66,bold:true}];
   if(hasA) lines.push({text:'作：'+item.author,size:34,y:120,color:'#a9532d',bold:true});
-  lines.push({text:fmtDate(item.date)||'',size:28,y:hasA?176:120,color:'#8a7d70'});
+  const fresh = isFresh(item);
+  lines.push({text:(fresh?'✨ 新しく出品　':'')+(fmtDate(item.date)||''),size:28,y:hasA?176:120,color:fresh?'#c8693f':'#8a7d70',bold:fresh});
   const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({toneMapped:false, map:textTexture(lines,512,H)}));
   m.userData.ownMat=true; m.material.userData.ownMap=true; m.userData.h=h; return m;
 }
@@ -817,7 +882,7 @@ function buildRoom(){
   for(let z=-L/2+1; z<L/2; z+=1.4) box(W,.16,.12,beamMat,0,H,z);
   [-1,1].forEach(s=>box(.18,.2,L,beamMat,s*(W/2-.09),H,0));
   // 観葉植物
-  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>roomGroup.add(plant(sx*(W/2-.6), sz*(L/2-.6))));
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>roomGroup.add(plant(sx*(W/2-.45), sz*(L/2-1.05))));
   // 奥に立てる看板
   const personal = !viewOnly && auth.signedIn && !familyMode();
   const title = personal ? (museumName ? `${museumName}の おもいで部屋` : 'わたしの おもいで部屋') : (museumName ? `${museumName}の おもいで美術館` : 'おもいで美術館');
@@ -841,6 +906,10 @@ async function loadItem(item){
   let r;
   if(item.sample && item.type==='photo'){ const c=item.canvas(); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; r={tex:t,aspect:c.width/c.height,urls:[c.toDataURL('image/jpeg',.9)]}; }
   else if(item.sample){ r={obj:item.build()}; }
+  else if(item.type==='book'){   // 本は表紙（1ページ目）だけ読み込む
+    const b=await getBlobAt(item,0), url=URL.createObjectURL(b), img=await loadImage(url);
+    r={urls:[url], tex:makeTex(img), aspect:img.naturalWidth/img.naturalHeight};
+  }
   else {
     const blobs=await getBlobs(item);
     if(item.type==='model'){ r={obj:await parseGLB(await blobs[0].arrayBuffer())}; }
@@ -894,10 +963,50 @@ function cutoutCard(spin, dir){
   return g;
 }
 
+/* ---------- 本棚 ---------- */
+const BOOK_CATS=['アルバム','卒業アルバム','しおり・プログラム','文集・作文','成長の記録','通信簿・賞状','その他'];
+const BOOK_PRIVATE=['成長の記録','通信簿・賞状'];        // 最初は家族の美術館に置かない種類
+const BOOK_COLORS={'アルバム':0x8b5e3c,'卒業アルバム':0x2f4a6b,'しおり・プログラム':0xc8693f,'文集・作文':0x5f7d4e,'成長の記録':0xc9a227,'通信簿・賞状':0x7a3b4a,'その他':0x6b6b6b};
+const PER_TIER=3, TIERS=3;
+function shelfUnit(x, z, facing){  // facing: 1=+z向き, -1=-z向き
+  const g=new THREE.Group(); g.position.set(x,0,z); if(facing<0) g.rotation.y=Math.PI;
+  const wood=new THREE.MeshStandardMaterial({color:0xb48a5f,roughness:.7}), back=new THREE.MeshStandardMaterial({color:0xe9dcc8,roughness:.9});
+  const add=(w,h,d,m,px,py,pz)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); b.position.set(px,py,pz); b.userData.ownMat=true; g.add(b); };
+  const Wd=1.5, Ht=1.95, D=.34;
+  add(Wd,Ht,.03,back,0,Ht/2,-D/2+.015);
+  add(.04,Ht,D,wood,-Wd/2,Ht/2,0); add(.04,Ht,D,wood,Wd/2,Ht/2,0);
+  for(let i=0;i<=TIERS;i++) add(Wd,.035,D,wood,0,.06+i*.62,0);
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(.9,.2), new THREE.MeshBasicMaterial({toneMapped:false,map:textTexture([{text:'おもいでの本棚',size:52,y:72,bold:true}],512,114,{bg:'#fbf8f3',color:'#7a5a3e'})}));
+  sign.position.set(0,Ht+.16,0); sign.userData.ownMat=true; sign.material.userData.ownMap=true; g.add(sign);
+  itemsGroup.add(g); return g;
+}
+function buildShelves(books, loaded){
+  if(!books.length) return;
+  // 奥のガラスの両側に2台、足りなければ入口側にもう1台
+  const spots=[[-2.45,-L/2+.3,1],[2.45,-L/2+.3,1],[-2.45,L/2-.3,-1]];
+  const cap=PER_TIER*TIERS, list=books.slice().sort((a,b)=>(b.created||0)-(a.created||0)).slice(0,cap*spots.length);
+  const units=[];
+  list.forEach((item,i)=>{
+    const u=Math.floor(i/cap); if(!units[u]) units[u]=shelfUnit(...spots[u]);
+    const g=units[u], slot=i%cap, tier=TIERS-1-Math.floor(slot/PER_TIER), col=slot%PER_TIER;
+    const t=loaded.get(item.id);
+    let w=.36, h=w/((t&&t.aspect)||.75); if(h>.46){ h=.46; w=h*((t&&t.aspect)||.75); }
+    const bk=new THREE.Group(); bk.position.set((col-1)*.46, .08+tier*.62, .02); bk.rotation.x=-.1;
+    const color=BOOK_COLORS[item.category]||BOOK_COLORS['その他'];
+    const body=new THREE.Mesh(new THREE.BoxGeometry(w+.02,h+.02,.04), new THREE.MeshStandardMaterial({color,roughness:.6})); body.position.set(0,h/2+.01,-.03); body.userData.ownMat=true;
+    const cover=new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({map:t?t.tex:null,color:t?0xffffff:0xeeeeee,toneMapped:false})); cover.position.set(0,h/2+.01,-.009); cover.userData.ownMat=true;
+    bk.add(body,cover); g.add(bk);
+    [body,cover].forEach(m=>{ m.userData.item=item; pickables.push(m); });
+    const wpos=new THREE.Vector3(); bk.getWorldPosition(wpos);
+    const f=spots[u][2];
+    anchors.set(item.id,{pos:new THREE.Vector3(wpos.x,1.45,wpos.z), normal:new THREE.Vector3(0,0,f), dist:1.5});
+  });
+}
+
 let building=Promise.resolve();
 function buildGallery(items){ building = building.then(()=>doBuild(items)).catch(e=>console.error(e)); return building; }
 async function doBuild(items){
-  const photos=items.filter(i=>i.type==='photo'), stands=items.filter(i=>i.type==='model'||i.type==='spin');
+  const photos=items.filter(i=>i.type==='photo'), stands=items.filter(i=>i.type==='model'||i.type==='spin'), books=items.filter(i=>i.type==='book');
   L=Math.max(12, 5+Math.ceil(photos.length/2)*SP, 6+stands.length*1.3);
   const loaded=new Map();
   await Promise.all(items.map(async it=>{ try{ loaded.set(it.id, await loadItem(it)); }catch(e){ if(e instanceof AuthError) needAuth(); console.warn('load failed', it.id, e); } }));
@@ -932,6 +1041,7 @@ async function doBuild(items){
     for(let t=0;t<120;t++){
       const x=(r()*2-1)*xMax, z=zMin+r()*(zMax-zMin);
       let d=Math.hypot(start.x-x,start.z-z)-.8; placed.forEach(p=>{ d=Math.min(d, Math.hypot(p.x-x,p.z-z)); });
+      if(books.length>PER_TIER*TIERS*2) d=Math.min(d, Math.hypot(-2.45-x, L/2-.3-z)-.9);
       if(d>=1.6){ best={x,z}; break; } if(d>bestD){ bestD=d; best={x,z}; }
     }
     placed.push(best);
@@ -951,6 +1061,8 @@ async function doBuild(items){
     itemsGroup.add(g);
     anchors.set(item.id,{pos:new THREE.Vector3(best.x,1.3,best.z), normal:new THREE.Vector3(Math.sin(rotY),0,Math.cos(rotY)), dist:1.8});
   });
+
+  buildShelves(books, loaded);
 
   const real=items.filter(i=>!i.sample).length;
   $('count').textContent = real ? `${real} 点` : ((auth.signedIn||viewOnly) ? '0 点' : '見本');
@@ -1076,11 +1188,14 @@ let remote = { name:'', items:[] };
 let pendingItems = [];
 let lastSig='';
 let roomItems = [], roomMembers = [], roomName = '';     // 家族の美術館（他の人の作品）
-let viewItems = [], viewName = '';                      // 見るだけモード
+let viewItems = [], viewName = '';
+let roomComments = [], viewComments = [];                      // 見るだけモード
 const myShare = () => (remote.share && remote.share.enabled) ? remote.share : null;
 function loadRoomCache(){ try{ const a=JSON.parse(lsGet(viewOnly?'omoide.view.'+viewId:'omoide.room')||'null'); if(Array.isArray(a)) applyRoom(new Map(a)); }catch(e){} }
 function applyRoom(map){
   const items=roomItemsFrom(map), name=roomNameOf(map);
+  const cm=[]; for(const [pid,pj] of map){ (pj&&pj.comments||[]).forEach(c=>cm.push({ ...c, name:c.name||pj.name||'', from:pid })); }
+  if(viewOnly) viewComments=cm; else roomComments=cm;
   if(viewOnly){ viewItems=items; viewName=name; }
   else { roomItems=items; roomMembers=[...map].map(([id,pj])=>({id, name:pj.name||'家族'})); roomName=(myShare()&&myShare().roomName)||name; }
 }
@@ -1112,7 +1227,7 @@ async function render(force=false){
   museumName = viewOnly ? viewName : (familyMode() ? (roomName||myShare().roomName||'') : (remote.name || ''));
   setHeader();
   const list=allItems();
-  const s=JSON.stringify([museumName, mode, list.map(i=>[i.id,i.title,i.author||'',i.date,!!i.local,i.ownerName||''])]);
+  const s=JSON.stringify([museumName, mode, list.map(i=>[i.id,i.title,i.author||'',i.date,!!i.local,i.ownerName||'',i.shared!==false,isFresh(i)])]);
   if(!force && s===lastSig) return;
   lastSig=s;
   const loadingMany = list.filter(i=>!i.sample && !loadedCache.has(i.id)).length;
@@ -1156,19 +1271,22 @@ async function doSync(retried=false){
       pill.classList.add('show'); pill.querySelector('.spin').style.display=''; pill.onclick=null;
       for(const p of pendingItems.slice()){
         $('syncText').textContent=`ドライブに保存中…（残り${pendingItems.length}点）`;
-        const blobs = p.type==='spin' ? p.blobs : [p.blob];
+        const blobs = isMulti(p.type) ? p.blobs : [p.blob];
         const ext = p.type==='model' ? '.glb' : (p.type==='spin' && p.cutout ? '.png' : '.jpg');
         const base = (p.title||'無題').replace(/[\\/:*?"<>|]/g,'').slice(0,20) + '_' + (p.date||today());
         const ids=[];
         const share = myShare() && p.shared!==false;
         for(let i=0;i<blobs.length;i++){
-          const f=await drive.upload(blobs[i], base + (blobs.length>1?`_${String(i+1).padStart(2,'0')}`:'') + ext);
+          const f=await drive.upload(blobs[i], base + (blobs.length>1?`_${p.type==='book'?'p':''}${String(i+1).padStart(2,'0')}`:'') + ext);
           ids.push(f.id); cachePut(f.id, blobs[i]);
           if(share) await drive.setPublic(f.id, true);
         }
         const item={ id:p.id, type:p.type, title:p.title, author:p.author||'', date:p.date, memo:p.memo||'', created:p.created };
         if(p.shared===false) item.shared=false;
-        if(p.type==='spin'){ item.fileIds=ids; item.cutout=!!p.cutout; item.spinDir=p.spinDir||1; } else item.fileId=ids[0];
+        if(p.sharedAt) item.sharedAt=p.sharedAt;
+        if(p.type==='spin'){ item.fileIds=ids; item.cutout=!!p.cutout; item.spinDir=p.spinDir||1; }
+        else if(p.type==='book'){ item.fileIds=ids; item.category=p.category||'その他'; }
+        else item.fileId=ids[0];
         remote = await drive.mutate(d=>{ d.items=d.items.filter(x=>x.id!==item.id); d.items.push(item); });
         saveLocalIndex();
         await outboxDel(p.id);
@@ -1303,6 +1421,59 @@ function makeSpinViewer(container, urls, opts={}){
 }
 function closeSpinView(){ if(spinView){ spinView.stop(); spinView=null; } }
 
+// 本を読むビューア：指でめくる・2本指で拡大・全画面
+function makeBookViewer(container, item, opts={}){
+  const n = opts.blobs ? opts.blobs.length : fileIdsOf(item).length || (item.blobs||[]).length;
+  container.classList.add('bk');
+  const box=document.createElement('div'); box.className='bookview';
+  box.innerHTML=`<img class="page" alt=""><button class="pg prev" aria-label="前のページ">‹</button><button class="pg next" aria-label="次のページ">›</button><div class="pgcount"></div><button class="pgfull">⤢ 全画面</button>`;
+  container.appendChild(box);
+  const img=box.querySelector('img'), prev=box.querySelector('.prev'), next=box.querySelector('.next'), cnt=box.querySelector('.pgcount'), full=box.querySelector('.pgfull');
+  const urls=new Map(); let alive=true;
+  const urlOf=async i=>{ if(urls.has(i)) return urls.get(i); const b= opts.blobs ? opts.blobs[i] : await getBlobAt(item,i); const u=URL.createObjectURL(b); urls.set(i,u); return u; };
+  const v={idx:0, zoom:1, px:0, py:0, pts:new Map(), start:null, pinch:null, lastTap:0};
+  const apply=()=>{ img.style.transform=`translate(${v.px}px,${v.py}px) scale(${v.zoom})`; };
+  const resetZoom=()=>{ v.zoom=1; v.px=0; v.py=0; apply(); };
+  const go=async i=>{
+    if(i<0||i>=n) return; v.idx=i; resetZoom();
+    cnt.textContent=`${i+1} / ${n}`; prev.disabled=i===0; next.disabled=i===n-1;
+    img.style.opacity=.3;
+    try{ const u=await urlOf(i); if(!alive||v.idx!==i) return; img.src=u; img.onload=()=>{ img.style.opacity=1; }; }catch(e){ cnt.textContent=`${i+1} / ${n}（読み込めませんでした）`; }
+    [i+1,i-1].forEach(j=>{ if(j>=0&&j<n) urlOf(j).catch(()=>{}); });
+  };
+  prev.onclick=e=>{ e.stopPropagation(); go(v.idx-1); };
+  next.onclick=e=>{ e.stopPropagation(); go(v.idx+1); };
+  full.onclick=e=>{ e.stopPropagation(); box.classList.toggle('full'); full.textContent=box.classList.contains('full')?'✕ 閉じる':'⤢ 全画面'; resetZoom(); };
+  const dist=()=>{ const [a,b]=[...v.pts.values()]; return Math.hypot(a.x-b.x,a.y-b.y)||1; };
+  box.onpointerdown=e=>{
+    if(e.target.closest('button')) return;
+    v.pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); try{box.setPointerCapture(e.pointerId);}catch(_){}
+    if(v.pts.size===1){
+      const now=Date.now(); if(now-v.lastTap<300){ if(v.zoom>1.05) resetZoom(); else { v.zoom=2.5; apply(); } } v.lastTap=now;
+      v.start={x:e.clientX,y:e.clientY,px:v.px,py:v.py};
+    } else if(v.pts.size===2){ v.start=null; v.pinch={d:dist(), z:v.zoom}; }
+  };
+  box.onpointermove=e=>{
+    if(!v.pts.has(e.pointerId)) return;
+    v.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(v.pinch && v.pts.size===2){ v.zoom=Math.max(1,Math.min(5,v.pinch.z*dist()/v.pinch.d)); if(v.zoom<=1.01){ v.px=v.py=0; } apply(); return; }
+    if(v.start && v.zoom>1.01){ v.px=v.start.px+(e.clientX-v.start.x); v.py=v.start.py+(e.clientY-v.start.y); apply(); }
+  };
+  box.onpointerup=box.onpointercancel=e=>{
+    const p=v.pts.get(e.pointerId); v.pts.delete(e.pointerId);
+    if(v.start && v.zoom<=1.01 && p && v.pts.size===0){ const dx=p.x-v.start.x; if(Math.abs(dx)>40){ go(v.idx + (dx<0?1:-1)); } }
+    if(v.pts.size<2) v.pinch=null;
+    if(v.pts.size===0) v.start=null;
+  };
+  go(0);
+  return { stop(){ alive=false; box.onpointerdown=box.onpointermove=box.onpointerup=box.onpointercancel=null; urls.forEach(u=>URL.revokeObjectURL(u)); container.classList.remove('bk'); box.remove(); } };
+}
+
+let vCat='その他';
+function drawCats(boxId, get, set){
+  const box=$(boxId); box.innerHTML='';
+  BOOK_CATS.forEach(c=>{ const b=document.createElement('button'); b.type='button'; b.className='chip'+(get()===c?' on':''); b.textContent=c; b.onclick=()=>{ set(c); drawCats(boxId,get,set); }; box.appendChild(b); });
+}
 async function openViewer(item){
   current=item; const pv=$('viewPreview'); pv.innerHTML=''; closeMini(); closeSpinView();
   const note=$('vNote'); note.style.display='none';
@@ -1312,23 +1483,27 @@ async function openViewer(item){
   if(readOnly){ $('vAuthorChips').style.display='none'; } else drawAuthorChips('vAuthorChips','vAuthor');
   $('vOwner').textContent = item.ownerName ? `登録した人：${item.ownerName}` : '';
   $('vGo').style.display = $('listSheet').classList.contains('show') ? '' : 'none';
-  const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : '';
+  const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : item.type==='book' ? `　・　📚 ${item.category||'本棚'}（${fileIdsOf(item).length||(item.blobs||[]).length}ページ）　左右になぞるとページをめくれます` : '';
   $('vMeta').textContent=hint.replace(/^　・　/,'');
   if(item.sample){ note.style.display='block'; note.textContent='これは見本の作品です。ログインすると、あなたの作品を飾れます。'; }
   else if(item.pub){ note.style.display='block'; note.textContent=`${item.ownerName||'家族'}さんが登録した作品です（見るだけ）。`; }
   else if(item.local){ note.style.display='block'; note.textContent='まだドライブに保存されていません。電波のあるところで開くと自動で保存されます。'; }
   $('vSpinOpts').style.display = (item.type==='spin' && !readOnly) ? 'flex' : 'none';
+  $('vBookOpts').style.display = (item.type==='book' && !readOnly) ? '' : 'none';
+  if(item.type==='book' && !readOnly){ vCat=item.category||'その他'; drawCats('vBookCats', ()=>vCat, c=>{ vCat=c; }); }
   $('vShareOpts').style.display = (!readOnly && myShare()) ? 'flex' : 'none';
-  $('vShare').classList.toggle('on', item.shared!==false); $('vShare').textContent = item.shared!==false ? '👪 家族の美術館に飾っています' : '🔒 家族の美術館には飾っていません';
+  $('vShare').classList.toggle('on', item.shared!==false); $('vShare').textContent = item.shared!==false ? '👪 家族の美術館に出しています（タップでしまう）' : '🏠 わたしの部屋だけ（タップで家族の美術館に出す）';
   $('vDir').classList.toggle('on', (item.spinDir||1)<0);
   $('vDelete').style.display=readOnly?'none':'';
   $('vDelete').classList.remove('armed'); $('vDelete').textContent='しまう（削除）';
+  $('cInput').value=''; drawComments(item); refreshCommentsFor(item);
   show('viewSheet');
   try{
     const d=await loadItem(item);
     if(current!==item) return;
     if(item.type==='photo'){ const img=document.createElement('img'); img.src=d.urls[0]; pv.appendChild(img); }
     else if(item.type==='spin'){ spinView=makeSpinViewer(pv, d.urls, {dir:item.spinDir||1, cut:!!item.cutout}); }
+    else if(item.type==='book'){ spinView=makeBookViewer(pv, item); }
     else { mini=makeMini(pv, d.obj); }
   }catch(e){ pv.innerHTML='<div class="file3d">読み込めませんでした</div>'; }
 }
@@ -1339,12 +1514,13 @@ async function closeViewer(){
   const item=latest(current); current=null;
   if(!item || item.sample || item.pub) return;
   const nt=$('vTitle').value.trim(), nm=$('vMemo').value.trim(), nd=$('vDate').value, na=$('vAuthor').value.trim();
-  if(nt===(item.title||'') && nm===(item.memo||'') && nd===(item.date||'') && na===(item.author||'')) return;
+  const nc = item.type==='book' ? vCat : item.category;
+  if(nt===(item.title||'') && nm===(item.memo||'') && nd===(item.date||'') && na===(item.author||'') && nc===item.category) return;
   if(na!==(item.author||'')) rememberAuthor(na);
-  if(item.local){ const p=await outboxAll(); const o=p.find(x=>x.id===item.id); if(o){ o.title=nt; o.memo=nm; o.date=nd; o.author=na; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } await render(); return; }
+  if(item.local){ const p=await outboxAll(); const o=p.find(x=>x.id===item.id); if(o){ o.title=nt; o.memo=nm; o.date=nd; o.author=na; if(nc) o.category=nc; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } await render(); return; }
   if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
   try{
-    remote = await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ it.title=nt; it.memo=nm; it.date=nd; it.author=na; } });
+    remote = await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ it.title=nt; it.memo=nm; it.date=nd; it.author=na; if(nc) it.category=nc; } });
     saveLocalIndex(); await render(true);
   }catch(e){ if(e instanceof AuthError) needAuth(); toast('保存できませんでした'); }
 }
@@ -1354,14 +1530,14 @@ $('vGo').onclick=async()=>{ const it=current; await closeViewer(); show('listShe
 $('vShare').onclick=async()=>{
   const item=latest(current); if(!item || item.sample || item.pub || !myShare()) return; current=item;
   const on = item.shared===false;   // 切り替え後
-  const setChip=v=>{ $('vShare').classList.toggle('on', v); $('vShare').textContent = v ? '👪 家族の美術館に飾っています' : '🔒 家族の美術館には飾っていません'; };
-  if(item.local){ const o=(await outboxAll()).find(x=>x.id===item.id); if(o){ o.shared=on; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } item.shared=on; setChip(on); await render(true); return; }
+  const setChip=v=>{ $('vShare').classList.toggle('on', v); $('vShare').textContent = v ? '👪 家族の美術館に出しています（タップでしまう）' : '🏠 わたしの部屋だけ（タップで家族の美術館に出す）'; };
+  if(item.local){ const o=(await outboxAll()).find(x=>x.id===item.id); if(o){ o.shared=on; if(on) o.sharedAt=Date.now(); else delete o.sharedAt; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } item.shared=on; setChip(on); await render(true); toast(on?'家族の美術館に出しました':'わたしの部屋にしまいました'); return; }
   if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
-  busy(true, on ? '家族の美術館に飾っています…' : '家族の美術館から外しています…');
+  busy(true, on ? '家族の美術館に出しています…' : 'わたしの部屋にしまっています…');
   try{
     for(const fid of fileIdsOf(item)) await drive.setPublic(fid, on);
-    remote=await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ if(on) delete it.shared; else it.shared=false; } });
-    saveLocalIndex(); item.shared=on; setChip(on); await render(true);
+    remote=await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ if(on){ delete it.shared; it.sharedAt=Date.now(); } else { it.shared=false; delete it.sharedAt; } } });
+    saveLocalIndex(); item.shared=on; setChip(on); await render(true); toast(on?'家族の美術館に出しました':'わたしの部屋にしまいました');
   }catch(e){ if(e instanceof AuthError) needAuth(); toast('変更できませんでした'); }
   finally{ busy(false); }
 };
@@ -1386,7 +1562,7 @@ $('vDelete').onclick=async()=>{
   try{
     remote = await drive.mutate(d=>{ d.items=d.items.filter(x=>x.id!==item.id); });
     saveLocalIndex();
-    for(const id of (item.type==='spin'?item.fileIds:[item.fileId])) await drive.trash(id);
+    for(const id of fileIdsOf(item)) await drive.trash(id);
     forget(item.id); await render(); if(listOpen()) drawList(); toast('作品をしまいました（ドライブのゴミ箱に移りました）',3600);
   }catch(e){ if(e instanceof AuthError) needAuth(); toast('削除できませんでした'); }
   finally{ busy(false); }
@@ -1509,6 +1685,65 @@ $('joinGo').onclick=async()=>{
 $('viewInfoOk').onclick=()=>show('viewInfoSheet',false);
 $('viewInfoMine').onclick=()=>{ location.href=APP_URL; };
 
+/* ---------------- コメント ---------------- */
+// コメントは書いた人のドライブ（公開データ）に保存し、家族の画面でまとめて表示する
+function commentTarget(item){
+  if(item.pub) return item.id;                         // 家族の作品：「持ち主ID:作品ID」
+  const sh=myShare(); return sh ? sh.publicId+':'+item.id : null;
+}
+function commentsFor(item){
+  const t=commentTarget(item); if(!t) return [];
+  const mine=(!viewOnly && remote.comments) ? remote.comments.map(c=>({ ...c, mine:true })) : [];
+  const others = viewOnly ? viewComments : roomComments;
+  const seen=new Set(), out=[];
+  mine.concat(others).forEach(c=>{ if(c.target===t && !seen.has(c.id)){ seen.add(c.id); out.push(c); } });
+  return out.sort((a,b)=>a.at-b.at);
+}
+const fmtStamp = t => { const d=new Date(t); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; };
+function commentsVisible(item){
+  if(item.sample) return false;
+  if(viewOnly) return true;
+  if(!myShare()) return false;
+  return !!item.pub || item.shared!==false;
+}
+function drawComments(item){
+  const box=$('vComments');
+  if(!commentsVisible(item)){ box.style.display='none'; return; }
+  box.style.display='';
+  const list=commentsFor(item), el=$('cList');
+  el.innerHTML = list.length ? '' : '<div class="cempty">まだコメントはありません。最初のひとことをどうぞ。</div>';
+  list.forEach(c=>{
+    const d=document.createElement('div'); d.className='cmt';
+    d.innerHTML=`<div class="who"><b>${esc(c.name||'家族')}</b><span>${fmtStamp(c.at)}</span>${c.mine?'<button class="del">消す</button>':''}</div><div class="txt">${esc(c.text)}</div>`;
+    if(c.mine) d.querySelector('.del').onclick=()=>deleteComment(c.id, item);
+    el.appendChild(d);
+  });
+  $('cForm').style.display = viewOnly ? 'none' : 'flex';
+  if(viewOnly && !list.length) el.innerHTML='<div class="cempty">まだコメントはありません。</div>';
+}
+let lastRoomRefresh=0;
+async function refreshCommentsFor(item){
+  if(viewOnly || !myShare() || Date.now()-lastRoomRefresh<20000) return;
+  lastRoomRefresh=Date.now();
+  try{ await refreshRoom(); if(current && current.id===item.id) drawComments(item); }catch(e){}
+}
+$('cSend').onclick=async()=>{
+  const item=latest(current); if(!item) return;
+  const text=$('cInput').value.trim(); if(!text) return;
+  if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+  const c={ id:uid(), target:commentTarget(item), text, at:Date.now(), name:myShare().name||'' };
+  $('cSend').disabled=true;
+  try{ remote=await drive.mutate(d=>{ d.comments=(d.comments||[]).concat([c]); }); saveLocalIndex(); $('cInput').value=''; drawComments(item); if(listOpen()) drawList(); }
+  catch(e){ if(e instanceof AuthError) needAuth(); toast('コメントを送れませんでした'); }
+  finally{ $('cSend').disabled=false; }
+};
+$('cInput').addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing){ e.preventDefault(); $('cSend').click(); } });
+async function deleteComment(id, item){
+  if(!auth.valid){ needAuth(); return; }
+  try{ remote=await drive.mutate(d=>{ d.comments=(d.comments||[]).filter(c=>c.id!==id); }); saveLocalIndex(); drawComments(item); if(listOpen()) drawList(); }
+  catch(e){ toast('消せませんでした'); }
+}
+
 /* ---------------- 作者（過去に入れた名前から選べる） ---------------- */
 function rememberAuthor(a){
   if(!a) return;
@@ -1533,7 +1768,7 @@ function drawAuthorChips(boxId, inputId){
 
 /* ---------------- 作品の一覧 ---------------- */
 let listSort='new';
-const TYPE_LABEL={photo:'写真・絵', spin:'くるっと写真', model:'3D'};
+const TYPE_LABEL={photo:'写真・絵', spin:'くるっと写真', model:'3D', book:'本棚'};
 function drawList(){
   const items=allItems().slice();
   if(listSort==='date') items.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.created||0)-(a.created||0));
@@ -1547,7 +1782,7 @@ function drawList(){
     const row=document.createElement('button'); row.className='wrow';
     const th=document.createElement('div'); th.className='wthumb'+(it.cutout?' cut':''); th.textContent = it.type==='model' ? '🧊' : '';
     const info=document.createElement('div'); info.className='winfo';
-    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.author?'作：'+esc(it.author)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${TYPE_LABEL[it.type]||''}${it.shared===false&&myShare()&&!familyMode()?'・🔒':''}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
+    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.author?'作：'+esc(it.author)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${it.type==='book'?'📚 '+esc(it.category||'本棚'):(TYPE_LABEL[it.type]||'')}${myShare()&&!familyMode()&&it.shared!==false?'<span class="wbadge">👪 出品中</span>':''}${isFresh(it)?'<span class="wbadge">✨ 新しく出品</span>':''}${(()=>{ const n=commentsVisible(it)?commentsFor(it).length:0; return n?`<span class="wbadge">💬 ${n}</span>`:''; })()}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
     row.append(th,info);
     row.onclick=()=>openViewer(it);
     box.appendChild(row);
@@ -1709,28 +1944,40 @@ $('file3d').onchange=async e=>{
   $('addPreview').innerHTML=`<div class="file3d">🧊 ${esc(f.name)}<br>（${(f.size/1048576).toFixed(1)} MB）</div>`;
   openAdd('3D作品を置く','例：ダンボールのロボット');
 };
-function openAdd(title, ph){ $('spinOpts').style.display='none'; $('inAuthor').value=lsGet('omoide.lastAuthor')||''; drawAuthorChips('authorChips','inAuthor'); $('addTitle').textContent=title; $('inTitle').value=''; $('inTitle').placeholder=ph; $('inDate').value=today(); $('inMemo').value=''; show('addSheet'); }
-function closeAdd(){ show('addSheet',false); closeSpinView(); if(pending&&pending.urls) pending.urls.forEach(u=>URL.revokeObjectURL(u)); pending=null; }
+function openAdd(title, ph){ $('spinOpts').style.display='none'; $('bookOpts').style.display='none';
+  if(pending && pending.share===undefined){ pending.share=familyMode(); pending.shareTouched=false; }
+  $('addShareOpts').style.display = myShare() ? 'flex' : 'none'; refreshShareChip(); $('inAuthorLabel').textContent='作者（だれの作品？）'; $('inAuthor').value=lsGet('omoide.lastAuthor')||''; drawAuthorChips('authorChips','inAuthor'); $('addTitle').textContent=title; $('inTitle').value=''; $('inTitle').placeholder=ph; $('inDate').value=today(); $('inMemo').value=''; show('addSheet'); }
+function closeAdd(){ show('addSheet',false); closeSpinView(); $('bookOpts').style.display='none'; if(pending&&pending.urls) pending.urls.forEach(u=>URL.revokeObjectURL(u)); pending=null; }
 $('addCancel').onclick=closeAdd;
 $('addSave').onclick=async()=>{
   if(!pending) return;
   const p=pending; pending=null;
-  show('addSheet',false); closeSpinView(); (p.urls||[]).forEach(u=>URL.revokeObjectURL(u));
+  show('addSheet',false); closeSpinView(); $('bookOpts').style.display='none'; (p.urls||[]).forEach(u=>URL.revokeObjectURL(u));
   const author=$('inAuthor').value.trim(); rememberAuthor(author);
   const item={ id:uid(), type:p.type, title:$('inTitle').value.trim(), author, date:$('inDate').value, memo:$('inMemo').value.trim(), created:Date.now(), local:true };
-  if(p.type==='spin'){ item.blobs=p.blobs; item.cutout=!!(p.useCut && p.cut); item.spinDir=p.dir||1; } else item.blob=p.blob;
+  if(p.type==='spin'){ item.blobs=p.blobs; item.cutout=!!(p.useCut && p.cut); item.spinDir=p.dir||1; }
+  else if(p.type==='book'){ item.blobs=(p.useEnh && p.enh) ? p.enh : p.raw; item.category=p.cat||'その他'; }
+  else item.blob=p.blob;
+  if(myShare()){ if(p.share) item.sharedAt=Date.now(); else item.shared=false; }
   await outboxPut(item);
   pendingItems.push(item);
   await render(); visit(item.id);
-  toast(p.type==='photo' ? '壁に飾りました' : '台の上に飾りました');
+  const where = !myShare() ? '' : (item.shared===false ? 'わたしの部屋の' : '家族の美術館の');
+  toast(p.type==='photo' ? `${where}壁に飾りました` : p.type==='book' ? `${where}本棚に入れました` : `${where}台の上に飾りました`);
+  // わたしの部屋だけの作品を家族の美術館で飾った場合などは、見える方へ移動
+  if(familyMode() && item.shared===false){ await setMode('mine'); visit(item.id); }
   sync();
 };
 
 /* ---------------- くるっと写真カメラ ---------------- */
-const MAX_FRAMES=16, MIN_FRAMES=4, SPIN_SIZE=900;
-let camStream=null, shots=[];
-async function openCam(){
-  shots=[]; drawShots();
+const MAX_FRAMES=16, MIN_FRAMES=4, SPIN_SIZE=900, PAGE_SIZE=1600, MAX_PAGES=120;
+let camStream=null, shots=[], camMode='spin';
+const camMax=()=>camMode==='book'?MAX_PAGES:MAX_FRAMES, camMin=()=>camMode==='book'?1:MIN_FRAMES;
+async function openCam(mode='spin'){
+  camMode=mode; shots=[]; drawShots();
+  $('camGuide').innerHTML = mode==='book'
+    ? '紙全体が画面に入るように、1ページずつ撮ります。明るい場所で、真上から撮るときれいです。'
+    : 'まず正面から1枚。そこから作品のまわりを<b>右へ</b>少しずつ回りながら、一周で12〜16枚撮ります（枚数が多いほど、なめらかに回ります）。うすく見える前の写真を目安に、無地の壁や床の前で撮ると背景がきれいに切り抜けます。';
   $('cam').classList.add('show');
   try{
     camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
@@ -1738,35 +1985,35 @@ async function openCam(){
   }catch(e){
     closeCam();
     toast('カメラを使えなかったので、アルバムから選んでください',3600);
-    $('fileSpin').value=''; $('fileSpin').click();
+    const inp = camMode==='book' ? $('fileBookImg') : $('fileSpin'); inp.value=''; inp.click();
   }
 }
 function closeCam(){ if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; } $('camVideo').srcObject=null; $('cam').classList.remove('show'); }
 function drawShots(){
-  $('camCount').textContent=`${shots.length} 枚`+(shots.length<12?'（12枚以上がおすすめ）':'');
-  $('camDone').disabled = shots.length<MIN_FRAMES;
+  $('camCount').textContent = camMode==='book' ? `${shots.length} ページ` : `${shots.length} 枚`+(shots.length<12?'（12枚以上がおすすめ）':'');
+  $('camDone').disabled = shots.length<camMin();
   const box=$('camThumbs'); box.innerHTML='';
   shots.forEach(s=>{ const i=document.createElement('img'); i.src=s.url; box.appendChild(i); });
   box.scrollLeft=box.scrollWidth;
-  const g=$('camGhost'); if(shots.length){ g.src=shots[shots.length-1].url; g.style.display=''; } else g.style.display='none';
+  const g=$('camGhost'); if(shots.length && camMode!=='book'){ g.src=shots[shots.length-1].url; g.style.display=''; } else g.style.display='none';
 }
 $('camShutter').onclick=async()=>{
   const v=$('camVideo'); if(!v.videoWidth) return;
-  if(shots.length>=MAX_FRAMES){ toast(`${MAX_FRAMES}枚までです`); return; }
+  if(shots.length>=camMax()){ toast(`${camMax()}枚までです`); return; }
   const stage=$('camStage'), sw=stage.clientWidth, sh=stage.clientHeight;
   const vr=v.videoWidth/v.videoHeight, sr=sw/sh;
   let cw=v.videoWidth, ch=v.videoHeight, cx=0, cy=0;
   if(vr>sr){ cw=v.videoHeight*sr; cx=(v.videoWidth-cw)/2; } else { ch=v.videoWidth/sr; cy=(v.videoHeight-ch)/2; }
   const tmp=document.createElement('canvas'); tmp.width=Math.round(cw); tmp.height=Math.round(ch);
   tmp.getContext('2d').drawImage(v,cx,cy,cw,ch,0,0,tmp.width,tmp.height);
-  const blob=await drawScaled(tmp,tmp.width,tmp.height,SPIN_SIZE);
+  const blob=await drawScaled(tmp,tmp.width,tmp.height,camMode==='book'?PAGE_SIZE:SPIN_SIZE);
   shots.push({blob,url:URL.createObjectURL(blob)});
   const fl=$('flash'); fl.style.transition='none'; fl.style.opacity=.7; requestAnimationFrame(()=>{ fl.style.transition='opacity .25s'; fl.style.opacity=0; });
   drawShots();
 };
 $('camClose').onclick=()=>{ shots.forEach(s=>URL.revokeObjectURL(s.url)); shots=[]; closeCam(); };
-$('camAlbum').onclick=()=>{ $('fileSpin').value=''; $('fileSpin').click(); };
-$('camDone').onclick=()=>{ const s=shots; shots=[]; closeCam(); startSpinAdd(s); };
+$('camAlbum').onclick=()=>{ const inp = camMode==='book' ? $('fileBookImg') : $('fileSpin'); inp.value=''; inp.click(); };
+$('camDone').onclick=()=>{ const s=shots; shots=[]; closeCam(); if(camMode==='book') startBookAdd(s.map(x=>{ URL.revokeObjectURL(x.url); return x.blob; }), true); else startSpinAdd(s); };
 $('fileSpin').onchange=async e=>{
   const files=[...e.target.files].sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name)).slice(0,MAX_FRAMES);
   if(!files.length) return;
@@ -1804,6 +2051,105 @@ function refreshSpinPreview(){
 }
 $('optCut').onclick=()=>{ if(!pending) return; pending.useCut=!pending.useCut; refreshSpinPreview(); };
 $('optDir').onclick=()=>{ if(!pending) return; pending.dir=-pending.dir; if(spinView) spinView.dir=pending.dir; $('optDir').classList.toggle('on', pending.dir<0); };
+
+/* ---------------- 本棚に入れる ---------------- */
+$('addBook').onclick=()=>show('menuBook');
+$('menuBookCancel').onclick=()=>show('menuBook',false);
+$('bookCam').onclick=()=>{ show('menuBook',false); openCam('book'); };
+$('bookImg').onclick=()=>{ show('menuBook',false); $('fileBookImg').value=''; $('fileBookImg').click(); };
+$('bookPdf').onclick=()=>{ show('menuBook',false); $('filePdf').value=''; $('filePdf').click(); };
+$('fileBookImg').onchange=async e=>{
+  const files=[...e.target.files].sort((a,b)=>(a.lastModified-b.lastModified)||a.name.localeCompare(b.name)).slice(0,MAX_PAGES);
+  if(!files.length) return;
+  const list=[];
+  for(let i=0;i<files.length;i++){ busy(true,`ページを読み込んでいます（${i+1}/${files.length}）`); try{ const b=await shrinkImage(files[i],PAGE_SIZE); if(b) list.push(b); }catch(err){} }
+  busy(false);
+  if($('cam').classList.contains('show')){ list.forEach(b=>shots.push({blob:b,url:URL.createObjectURL(b)})); drawShots(); return; }
+  if(!list.length){ toast('画像を読み込めませんでした'); return; }
+  startBookAdd(list, false);
+};
+// PDF（スキャンしたもの）をページ画像にする
+const PDFJS = (window.OMOIDE_TEST && window.OMOIDE_TEST.pdfjs) || 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+async function pdfToPages(file){
+  if(!window.pdfjsLib) await loadScript(PDFJS+'pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS+'pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  const n=Math.min(pdf.numPages, MAX_PAGES), out=[];
+  for(let i=1;i<=n;i++){
+    busy(true,`PDFをページにしています（${i}/${n}）`);
+    const page=await pdf.getPage(i), vp0=page.getViewport({scale:1});
+    const scale=PAGE_SIZE/Math.max(vp0.width,vp0.height), vp=page.getViewport({scale});
+    const c=document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+    const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height);
+    await page.render({canvasContext:x, viewport:vp}).promise;
+    out.push(await new Promise(res=>c.toBlob(res,'image/jpeg',.88)));
+  }
+  return out;
+}
+$('filePdf').onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  let pages=[];
+  try{ pages=await pdfToPages(f); }catch(err){ console.warn(err); busy(false); toast('このPDFは読み込めませんでした',3600); return; }
+  busy(false);
+  if(!pages.length){ toast('ページが見つかりませんでした'); return; }
+  startBookAdd(pages, false, f.name.replace(/\.pdf$/i,''));
+};
+// くっきり補正：紙を白く、文字や写真をくっきり（スキャナー風）
+async function enhancePage(blob){
+  const url=URL.createObjectURL(blob);
+  try{
+    const img=await loadImage(url), c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight;
+    const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(img,0,0);
+    const id=x.getImageData(0,0,c.width,c.height), d=id.data, N=d.length/4;
+    const hist=new Uint32Array(256); for(let i=0;i<d.length;i+=4) hist[(d[i]*.299+d[i+1]*.587+d[i+2]*.114)|0]++;
+    const pct=q=>{ let acc=0; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=N*q) return v; } return 255; };
+    const lo=pct(.015), hi=Math.max(lo+40, pct(.93));
+    // 紙の色（明るい部分の平均）から色かぶりを取る
+    let sr=0,sg=0,sb=0,cn=0; for(let i=0;i<d.length;i+=4){ const L=d[i]*.299+d[i+1]*.587+d[i+2]*.114; if(L>=hi){ sr+=d[i]; sg+=d[i+1]; sb+=d[i+2]; cn++; } }
+    const avg=cn?(sr+sg+sb)/(3*cn):255, wr=cn?avg/(sr/cn):1, wg=cn?avg/(sg/cn):1, wb=cn?avg/(sb/cn):1;
+    const k=255/(hi-lo);
+    for(let i=0;i<d.length;i+=4){
+      d[i]  =Math.max(0,Math.min(255,(d[i]*wr-lo)*k));
+      d[i+1]=Math.max(0,Math.min(255,(d[i+1]*wg-lo)*k));
+      d[i+2]=Math.max(0,Math.min(255,(d[i+2]*wb-lo)*k));
+    }
+    x.putImageData(id,0,0);
+    return await new Promise(res=>c.toBlob(res,'image/jpeg',.88));
+  } finally { URL.revokeObjectURL(url); }
+}
+async function ensureEnhanced(p){
+  if(p.enh) return;
+  const out=[]; for(let i=0;i<p.raw.length;i++){ busy(true,`くっきり補正しています（${i+1}/${p.raw.length}）`); out.push(await enhancePage(p.raw[i])); }
+  busy(false); p.enh=out;
+}
+async function startBookAdd(raw, fromCamera, title=''){
+  if(!raw.length){ toast('ページがありません'); return; }
+  pending={type:'book', raw, enh:null, useEnh:!!fromCamera, cat:null, share:familyMode(), shareTouched:false, urls:[]};
+  if(pending.useEnh){ try{ await ensureEnhanced(pending); }catch(e){ pending.useEnh=false; busy(false); } }
+  openAdd(`本棚に入れる（${raw.length}ページ）`,'例：2019年 運動会のしおり');
+  $('inTitle').value=title;
+  $('inAuthorLabel').textContent='だれのもの？（作者・持ち主）';
+  $('bookOpts').style.display='';
+  drawCats('bookCats', ()=>pending&&pending.cat, c=>{ if(!pending) return; pending.cat=c; if(!pending.shareTouched){ pending.share = familyMode() && !BOOK_PRIVATE.includes(c); } refreshBookOpts(); });
+  refreshBookOpts(); refreshBookPreview();
+}
+function refreshBookOpts(){
+  const p=pending; if(!p || p.type!=='book') return;
+  $('optEnh').classList.toggle('on', p.useEnh);
+  refreshShareChip();
+}
+function refreshShareChip(){
+  const p=pending; if(!p) return;
+  $('optShare').classList.toggle('on', !!p.share);
+  $('optShare').textContent = p.share ? '👪 家族の美術館にも飾る（タップでわたしの部屋だけに）' : '🏠 わたしの部屋だけに飾る（タップで家族の美術館にも）';
+}
+function refreshBookPreview(){
+  const p=pending; if(!p || p.type!=='book') return;
+  closeSpinView(); const pv=$('addPreview'); pv.innerHTML='';
+  spinView=makeBookViewer(pv, {type:'book'}, {blobs:(p.useEnh&&p.enh)?p.enh:p.raw});
+}
+$('optEnh').onclick=async()=>{ const p=pending; if(!p || p.type!=='book') return; p.useEnh=!p.useEnh; if(p.useEnh){ try{ await ensureEnhanced(p); }catch(e){ busy(false); p.useEnh=false; toast('補正できませんでした'); } } refreshBookOpts(); refreshBookPreview(); };
+$('optShare').onclick=()=>{ const p=pending; if(!p) return; p.share=!p.share; p.shareTouched=true; refreshShareChip(); };
 
 /* ---------------- 起動 ---------------- */
 (async()=>{
