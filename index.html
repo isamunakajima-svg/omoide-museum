@@ -144,14 +144,35 @@
   .spinwrap img.spinB{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
   .bar .btn{padding:12px 14px;font-size:14px;gap:6px}
   .bar .btn svg{width:18px;height:18px}
-  .bookview{position:relative;width:100%;height:50vh;overflow:hidden;touch-action:none;background:#e9e1d5;border-radius:12px;display:flex;align-items:center;justify-content:center}
-  .bookview img.page{max-width:94%;max-height:94%;object-fit:contain;box-shadow:0 4px 18px #3a2e2540;background:#fff;transform-origin:center center;transition:opacity .18s;user-select:none;-webkit-user-drag:none;pointer-events:none}
-  .bookview .pg{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:56px;border:0;border-radius:10px;background:#3a2e2599;color:#fff;font-size:24px;cursor:pointer;z-index:2}
+  .bookview{position:relative;width:100%;height:56vh;overflow:hidden;touch-action:none;border-radius:12px;
+    background:radial-gradient(ellipse at 50% 38%,#f5eee3 0%,#e2d5c1 70%,#d3c3aa 100%);perspective:2000px;user-select:none;-webkit-user-select:none}
+  .bookview .book{position:absolute;left:50%;top:50%;transform-style:preserve-3d;transform:translate(-50%,-50%)}
+  .bookview .board{position:absolute;inset:-7px -10px -8px -6px;border-radius:3px 7px 7px 3px;background-color:var(--bc);
+    background-image:repeating-linear-gradient(0deg,#ffffff0d 0 1px,#0000 1px 3px),repeating-linear-gradient(90deg,#0000000f 0 1px,#0000 1px 3px);
+    box-shadow:0 14px 30px #3a2e2566,0 2px 4px #3a2e2540}
+  .bookview .edges{position:absolute;top:3px;bottom:-5px;right:-6px;width:6px;border-radius:0 2px 2px 0;background:repeating-linear-gradient(90deg,#fbf7ef 0 1px,#d8ccb9 1px 2px)}
+  .bookview .edgesb{position:absolute;left:4px;right:-4px;bottom:-5px;height:5px;border-radius:0 0 2px 2px;background:repeating-linear-gradient(0deg,#fbf7ef 0 1px,#d8ccb9 1px 2px)}
+  .bookview .pg-base,.bookview .face{position:absolute;inset:0;overflow:hidden;border-radius:1px 3px 3px 1px;background:#fbf7ef}
+  .bookview .pg-base:after,.bookview .face.front:after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,#00000038 0,#0000001a 3%,#0000 9%),linear-gradient(270deg,#0000000d 0,#0000 4%)}
+  .bookview .pimg{position:absolute;inset:3.5%;width:93%;height:93%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+  .bookview .sh{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#0000005c,#00000000 70%);opacity:0}
+  .bookview .leaf{position:absolute;inset:0;transform-origin:0 50%;transform-style:preserve-3d;display:none;will-change:transform}
+  .bookview .face{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  .bookview .face.back{transform:rotateY(180deg);background:linear-gradient(270deg,#e9dfcd 0,#f7f1e6 12%,#fbf7ef 60%)}
+  .bookview .face .lsh{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#0000 30%,#00000059);opacity:0}
+  .bookview .cover{position:absolute;inset:0;background-color:var(--bc);color:#f3e2b3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14%;
+    background-image:repeating-linear-gradient(0deg,#ffffff0d 0 1px,#0000 1px 3px),repeating-linear-gradient(90deg,#0000000f 0 1px,#0000 1px 3px),linear-gradient(90deg,#00000040,#0000 8%,#ffffff12 9%,#0000 11%)}
+  .bookview .cover:before{content:"";position:absolute;inset:8% 8% 8% 10%;border:1.5px solid #f3e2b399;border-radius:3px;box-shadow:inset 0 0 0 4px #0000,inset 0 0 0 5px #f3e2b355}
+  .bookview .cover .ct{font-weight:700;font-size:calc(var(--w) * .085);line-height:1.45;letter-spacing:.08em;text-shadow:0 1px 0 #0005,0 -1px 0 #fff2;word-break:break-all}
+  .bookview .cover .cc{margin-top:.9em;font-size:calc(var(--w) * .048);letter-spacing:.2em;opacity:.85}
+  .bookview .cover .cd{margin-top:.5em;font-size:calc(var(--w) * .042);opacity:.75}
+  .bookview .pg{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:56px;border:0;border-radius:10px;background:#3a2e2580;color:#fff;font-size:24px;cursor:pointer;z-index:2}
   .bookview .pg.prev{left:6px} .bookview .pg.next{right:6px}
-  .bookview .pg:disabled{opacity:.15}
-  .bookview .pgcount{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:#3a2e25cc;color:#fff;font-size:12.5px;padding:4px 10px;border-radius:999px;z-index:2}
+  .bookview .pg:disabled{opacity:.12}
+  .bookview .pgcount{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:#3a2e25cc;color:#fff;font-size:12.5px;padding:4px 10px;border-radius:999px;z-index:2;white-space:nowrap}
   .bookview .pgfull{position:absolute;top:8px;right:8px;border:0;background:#3a2e25cc;color:#fff;font:inherit;font-size:12.5px;padding:6px 10px;border-radius:999px;z-index:2;cursor:pointer}
-  .bookview.full{position:fixed;inset:0;height:auto;border-radius:0;z-index:45;background:#1d1814}
+  .bookview.full{position:fixed;inset:0;height:auto;border-radius:0;z-index:45;background:radial-gradient(ellipse at 50% 40%,#4a3c30,#1d1814)}
   .preview.bk{background:none;display:block}
   #vComments{margin-top:14px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px}
   #vComments h3{margin:0 0 8px;font-size:14.5px}
@@ -1620,49 +1641,109 @@ function closeSpinView(){ if(spinView){ spinView.stop(); spinView=null; } }
 // 本を読むビューア：指でめくる・2本指で拡大・全画面
 function makeBookViewer(container, item, opts={}){
   const n = opts.blobs ? opts.blobs.length : fileIdsOf(item).length || (item.blobs||[]).length;
+  const first = opts.blobs ? 0 : -1;      // -1 = 表紙
   container.classList.add('bk');
   const box=document.createElement('div'); box.className='bookview';
-  box.innerHTML=`<img class="page" alt=""><button class="pg prev" aria-label="前のページ">‹</button><button class="pg next" aria-label="次のページ">›</button><div class="pgcount"></div><button class="pgfull">⤢ 全画面</button>`;
+  box.innerHTML=`<div class="book"><div class="board"></div><div class="edges"></div><div class="edgesb"></div>
+    <div class="pg-base"><div class="pc"></div><div class="sh"></div></div>
+    <div class="leaf"><div class="face front"><div class="pc"></div><div class="lsh"></div></div><div class="face back"></div></div></div>
+    <button class="pg prev" aria-label="前のページ">‹</button><button class="pg next" aria-label="次のページ">›</button><div class="pgcount"></div><button class="pgfull">⤢ 全画面</button>`;
   container.appendChild(box);
-  const img=box.querySelector('img'), prev=box.querySelector('.prev'), next=box.querySelector('.next'), cnt=box.querySelector('.pgcount'), full=box.querySelector('.pgfull');
-  const urls=new Map(); let alive=true;
-  const urlOf=async i=>{ if(urls.has(i)) return urls.get(i); const b= opts.blobs ? opts.blobs[i] : await getBlobAt(item,i); const u=URL.createObjectURL(b); urls.set(i,u); return u; };
-  const v={idx:0, zoom:1, px:0, py:0, pts:new Map(), start:null, pinch:null, lastTap:0};
-  const apply=()=>{ img.style.transform=`translate(${v.px}px,${v.py}px) scale(${v.zoom})`; };
-  const resetZoom=()=>{ v.zoom=1; v.px=0; v.py=0; apply(); };
-  const go=async i=>{
-    if(i<0||i>=n) return; v.idx=i; resetZoom();
-    cnt.textContent=`${i+1} / ${n}`; prev.disabled=i===0; next.disabled=i===n-1;
-    img.style.opacity=.3;
-    try{ const u=await urlOf(i); if(!alive||v.idx!==i) return; img.src=u; img.onload=()=>{ img.style.opacity=1; }; }catch(e){ cnt.textContent=`${i+1} / ${n}（読み込めませんでした）`; }
-    [i+1,i-1].forEach(j=>{ if(j>=0&&j<n) urlOf(j).catch(()=>{}); });
+  const q=sel=>box.querySelector(sel);
+  const book=q('.book'), base=q('.pg-base .pc'), baseSh=q('.pg-base .sh'), leaf=q('.leaf'), front=q('.leaf .front .pc'), lsh=q('.leaf .lsh');
+  const prev=q('.prev'), next=q('.next'), cnt=q('.pgcount'), full=q('.pgfull');
+  const col=BOOK_COLORS[item.category]||BOOK_COLORS['アルバム']; book.style.setProperty('--bc','#'+col.toString(16).padStart(6,'0'));
+  const urls=new Map(); let alive=true, aspect=.72;
+  const urlOf=async i=>{ if(urls.has(i)) return urls.get(i); const bl= opts.blobs ? opts.blobs[i] : await getBlobAt(item,i); const u=URL.createObjectURL(bl); urls.set(i,u); return u; };
+  const v={idx:first, zoom:1, px:0, py:0, pts:new Map(), start:null, pinch:null, lastTap:0, flip:null};
+  const layout=()=>{
+    const W=box.clientWidth*.8, H=box.clientHeight*.84; let w=Math.min(W, H*aspect), h=w/aspect;
+    book.style.width=w+'px'; book.style.height=h+'px'; book.style.setProperty('--w', w+'px');
   };
-  prev.onclick=e=>{ e.stopPropagation(); go(v.idx-1); };
-  next.onclick=e=>{ e.stopPropagation(); go(v.idx+1); };
-  full.onclick=e=>{ e.stopPropagation(); box.classList.toggle('full'); full.textContent=box.classList.contains('full')?'✕ 閉じる':'⤢ 全画面'; resetZoom(); };
+  const apply=()=>{ book.style.transform=`translate(-50%,-50%) translate(${v.px}px,${v.py}px) scale(${v.zoom})`; };
+  const resetZoom=()=>{ v.zoom=1; v.px=0; v.py=0; apply(); };
+  // ページの中身（表紙 or 写真）
+  const coverHTML=()=>{ const d=item.date?fmtDate(item.date):''; return `<div class="cover"><div class="ct">${esc(item.title||'アルバム')}</div><div class="cc">${esc(item.category||'')}</div>${d?`<div class="cd">${esc(d)}</div>`:''}</div>`; };
+  const fill=async(el,i)=>{
+    if(i<0){ el.innerHTML=coverHTML(); return; }
+    el.innerHTML=''; const u=await urlOf(i); if(!alive) return; const im=new Image(); im.className='pimg'; im.alt=''; im.src=u; el.appendChild(im);
+    try{ await im.decode(); }catch(e){}
+  };
+  const label=()=>{ cnt.textContent = v.idx<0 ? `表紙（全${n}ページ）` : `${v.idx+1} / ${n}`; prev.disabled=v.idx<=first; next.disabled=v.idx>=n-1; };
+  // ページをめくる：葉（leaf）を背の部分を軸に回す
+  const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  const setP=(f,p)=>{
+    const ang = f.dir>0 ? -180*p : -180*(1-p);
+    const lift = Math.sin(p*Math.PI);
+    leaf.style.transform=`rotateY(${ang}deg) translateZ(${lift*6}px)`;
+    lsh.style.opacity = (f.dir>0 ? p : 1-p)*1.6;
+    baseSh.style.opacity = lift*.9 * (f.dir>0 ? (1-p) : p);
+    f.p=p;
+  };
+  const begin=async dir=>{
+    if(v.flip) return null;
+    const to=v.idx+dir; if(to<first||to>=n) return null;
+    const f={dir, to, p:0}; v.flip=f; resetZoom();
+    if(dir>0){ await Promise.all([fill(front, v.idx), fill(base, to)]); }
+    else { await fill(front, to); }
+    if(!alive) return null;
+    leaf.style.display='block'; setP(f,0); return f;
+  };
+  const finish=(f,done)=>new Promise(res=>{
+    const from=f.p, target=done?1:0, dur=Math.max(250, 1300*Math.abs(target-from)), t0=performance.now();
+    const step=now=>{ if(!alive) return res();
+      const t=Math.min(1,(now-t0)/dur); setP(f, from+(target-from)*ease(t));
+      if(t<1) return requestAnimationFrame(step);
+      (async()=>{
+        if(done){ v.idx=f.to; if(f.dir<0) await fill(base, f.to); }
+        else if(f.dir>0){ await fill(base, v.idx); }
+        leaf.style.display='none'; baseSh.style.opacity=0; v.flip=null; label();
+        [v.idx+1,v.idx+2,v.idx-1].forEach(j=>{ if(j>=0&&j<n) urlOf(j).catch(()=>{}); });
+        res();
+      })();
+    };
+    requestAnimationFrame(step);
+  });
+  const turn=async dir=>{ const f=await begin(dir); if(f) await finish(f,true); };
+  prev.onclick=e=>{ e.stopPropagation(); turn(-1); };
+  next.onclick=e=>{ e.stopPropagation(); turn(1); };
+  full.onclick=e=>{ e.stopPropagation(); box.classList.toggle('full'); full.textContent=box.classList.contains('full')?'✕ 閉じる':'⤢ 全画面'; resetZoom(); requestAnimationFrame(layout); };
   const dist=()=>{ const [a,b]=[...v.pts.values()]; return Math.hypot(a.x-b.x,a.y-b.y)||1; };
   box.onpointerdown=e=>{
     if(e.target.closest('button')) return;
     v.pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); try{box.setPointerCapture(e.pointerId);}catch(_){}
     if(v.pts.size===1){
-      const now=Date.now(); if(now-v.lastTap<300){ if(v.zoom>1.05) resetZoom(); else { v.zoom=2.5; apply(); } } v.lastTap=now;
-      v.start={x:e.clientX,y:e.clientY,px:v.px,py:v.py};
+      const now=Date.now(); if(now-v.lastTap<300 && !v.flip){ if(v.zoom>1.05) resetZoom(); else { v.zoom=2.3; apply(); } } v.lastTap=now;
+      v.start={x:e.clientX,y:e.clientY,px:v.px,py:v.py,drag:null,pending:false,t:now};
     } else if(v.pts.size===2){ v.start=null; v.pinch={d:dist(), z:v.zoom}; }
   };
-  box.onpointermove=e=>{
+  box.onpointermove=async e=>{
     if(!v.pts.has(e.pointerId)) return;
     v.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(v.pinch && v.pts.size===2){ v.zoom=Math.max(1,Math.min(5,v.pinch.z*dist()/v.pinch.d)); if(v.zoom<=1.01){ v.px=v.py=0; } apply(); return; }
-    if(v.start && v.zoom>1.01){ v.px=v.start.px+(e.clientX-v.start.x); v.py=v.start.py+(e.clientY-v.start.y); apply(); }
+    if(v.pinch && v.pts.size===2 && !v.flip){ v.zoom=Math.max(1,Math.min(5,v.pinch.z*dist()/v.pinch.d)); if(v.zoom<=1.01){ v.px=v.py=0; } apply(); return; }
+    const st=v.start; if(!st) return;
+    const dx=e.clientX-st.x;
+    if(v.zoom>1.01){ v.px=st.px+dx; v.py=st.py+(e.clientY-st.y); apply(); return; }
+    // 指でつまんでめくる
+    if(!st.drag && !st.pending && Math.abs(dx)>10){ st.pending=true; st.drag=await begin(dx<0?1:-1); st.pending=false; }
+    if(st.drag && v.start===st){ const w=book.offsetWidth||300; setP(st.drag, Math.max(0,Math.min(1, Math.abs(dx)/(w*1.1)))); }
   };
   box.onpointerup=box.onpointercancel=e=>{
-    const p=v.pts.get(e.pointerId); v.pts.delete(e.pointerId);
-    if(v.start && v.zoom<=1.01 && p && v.pts.size===0){ const dx=p.x-v.start.x; if(Math.abs(dx)>40){ go(v.idx + (dx<0?1:-1)); } }
+    v.pts.delete(e.pointerId);
+    const st=v.start;
+    if(st && st.drag && v.pts.size===0){ const fast=Date.now()-st.t<350 && st.drag.p>.05; finish(st.drag, st.drag.p>.3 || fast); }
     if(v.pts.size<2) v.pinch=null;
     if(v.pts.size===0) v.start=null;
   };
-  go(0);
-  return { stop(){ alive=false; box.onpointerdown=box.onpointermove=box.onpointerup=box.onpointercancel=null; urls.forEach(u=>URL.revokeObjectURL(u)); container.classList.remove('bk'); box.remove(); } };
+  const ro=new ResizeObserver(()=>layout()); ro.observe(box);
+  (async()=>{
+    try{ if(n){ const u=await urlOf(0); const im=new Image(); im.src=u; await im.decode(); if(im.naturalWidth) aspect=Math.max(.5,Math.min(1.5, im.naturalWidth/im.naturalHeight)); } }catch(e){}
+    if(!alive) return; layout(); apply();
+    try{ await fill(base, v.idx); }catch(e){ cnt.textContent='読み込めませんでした'; return; }
+    label(); [0,1].forEach(j=>{ if(j<n) urlOf(j).catch(()=>{}); });
+  })();
+  layout(); label();
+  return { stop(){ alive=false; ro.disconnect(); box.onpointerdown=box.onpointermove=box.onpointerup=box.onpointercancel=null; urls.forEach(u=>URL.revokeObjectURL(u)); container.classList.remove('bk'); box.remove(); } };
 }
 
 let vCat='その他';
@@ -1679,7 +1760,7 @@ async function openViewer(item){
   if(readOnly){ $('vAuthorChips').style.display='none'; } else drawAuthorChips('vAuthorChips','vAuthor');
   $('vOwner').textContent = item.ownerName ? `登録した人：${item.ownerName}` : '';
   $('vGo').style.display = $('listSheet').classList.contains('show') ? '' : 'none';
-  const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : item.type==='book' ? `　・　📚 ${item.category||'本棚'}（${fileIdsOf(item).length||(item.blobs||[]).length}ページ）　左右になぞるとページをめくれます` : '';
+  const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : item.type==='book' ? `　・　📚 ${item.category||'本棚'}（${fileIdsOf(item).length||(item.blobs||[]).length}ページ）　左右になぞると、ページをゆっくりめくれます` : '';
   $('vMeta').textContent=hint.replace(/^　・　/,'');
   if(item.sample){ note.style.display='block'; note.textContent='これは見本の作品です。ログインすると、あなたの作品を飾れます。'; }
   else if(item.pub){ note.style.display='block'; note.textContent=`${item.ownerName||'家族'}さんが登録した作品です（見るだけ）。`; }
