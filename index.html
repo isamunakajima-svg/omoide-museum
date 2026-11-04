@@ -230,6 +230,15 @@
   .fscrub{display:flex;align-items:center;gap:10px;padding:6px 22px 0;font-size:12px;color:#aaa}
   .fscrub input{flex:1;accent-color:#fff}
   .fempty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:14px;text-align:center;line-height:1.8}
+  #codeSheet{z-index:20}
+  #inCode{font-size:22px;letter-spacing:.18em;text-align:center;text-transform:uppercase;font-weight:700}
+  #exitSheet{z-index:30}
+  #bye{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:30px;
+    background:radial-gradient(ellipse at 50% 35%,#fffaf2,#efe4d3);color:var(--ink)}
+  #bye.show{display:flex}
+  #bye .big{font-size:64px;line-height:1}
+  #bye b{font-size:19px}
+  #bye p{margin:0;color:var(--muted);font-size:14px;line-height:1.8}
   input[type=file]{display:none}
 </style>
 <script type="importmap">
@@ -312,6 +321,29 @@
     <div class="row"><button class="btn ghost" id="termsBack">もどる</button><button class="btn primary" id="termsGo" disabled>同意してはじめる</button></div>
   </div>
 </div>
+
+<!-- 招待コード（お客さまとご家族だけが使えるように） -->
+<div class="overlay top" id="codeSheet">
+  <div class="sheet">
+    <h2>招待コードを入力してください</h2>
+    <p class="lead">おもいで美術館は、整理収納サービスをご利用のお客さまとご家族のためのサービスです。担当者からお知らせした招待コードを入力してください（最初の1回だけです）。</p>
+    <input type="text" id="inCode" maxlength="14" placeholder="XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <div class="note err" id="codeErr" style="display:none"></div>
+    <div class="small" style="text-align:left">ご家族から招待された方は、届いた「家族の美術館への招待」リンクを開くと、コードなしで使えます。</div>
+    <div class="row"><button class="btn ghost" id="codeLogout">ログアウト</button><button class="btn primary" id="codeGo">はじめる</button></div>
+  </div>
+</div>
+
+<!-- 戻るボタンで出るとき -->
+<div class="overlay top" id="exitSheet">
+  <div class="sheet">
+    <h2>美術館から出ますか？</h2>
+    <p class="lead">🦉 またいつでも見に来てくださいね。</p>
+    <div class="row"><button class="btn ghost" id="exitNo">いいえ</button><button class="btn primary" id="exitYes">はい</button></div>
+  </div>
+</div>
+
+<div id="bye"><div class="big">🦉</div><b>ご来館ありがとうございました</b><p>またいつでも見に来てくださいね。<br>もう一度「戻る」を押すと閉じます。</p><button class="btn ghost" id="byeBack" style="max-width:240px">美術館にもどる</button></div>
 
 <!-- LINE などアプリ内ブラウザ -->
 <div class="overlay top" id="inappSheet">
@@ -702,7 +734,7 @@ const fileIdsOf = it => isMulti(it.type) ? (it.fileIds||[]) : [it.fileId].filter
 // 家族や親戚が読む「公開データ」（共有している作品だけ）
 function buildPublic(d){
   const sh=d.share;
-  return { kind:'omoide-public', version:1, name:sh.name||'', museum:d.name||'',
+  return { kind:'omoide-public', version:1, name:sh.name||'', museum:d.name||'', access:(d.access&&d.access.h)||undefined,
     room:{ name:sh.roomName||'', members:(sh.members||[]).filter(x=>x!==sh.publicId) },
     items:d.items.filter(it=>it.shared!==false && !it.archived).map(it=>({ id:it.id, type:it.type, category:it.category, title:it.title||'', author:it.author||'', date:it.date||'', memo:it.memo||'', created:it.created,
       fileId:it.fileId, fileIds:it.fileIds, cutout:it.cutout, spinDir:it.spinDir, sharedAt:it.sharedAt })),
@@ -1581,6 +1613,7 @@ const SPIN_SECONDS=36;   // 飾ってある立体が1周する秒数
 // となりの写真に切り替わる直前の短い間だけ重ねる（重なりが目立たないように）
 function fadeCurve(f){ const t=Math.min(1,Math.max(0,(f-.38)/.24)); return t*t*(3-2*t); }
 function loop(){
+  if(!navReady) startBackNav();
   const dt=Math.min(clock.getDelta(),.05);
   const f=(keys.has('w')||keys.has('arrowup'))-(keys.has('s')||keys.has('arrowdown'));
   const t=(keys.has('a')||keys.has('arrowleft'))-(keys.has('d')||keys.has('arrowright'));
@@ -1796,7 +1829,7 @@ $('menuLogout').onclick=async()=>{
   if(!out.length && !confirmTwice($('menuLogout'), 'もう一度押すとログアウトします')) return;
   busy(true,'ログアウトしています…');
   try{ if(auth.token) await fetch('https://oauth2.googleapis.com/revoke?token='+encodeURIComponent(auth.token),{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'}}).catch(()=>{}); }catch(e){}
-  ['omoide.token','omoide.exp','omoide.email','omoide.signedIn','omoide.folder','omoide.index','omoide.cache','omoide.nameAsked'].forEach(k=>lsSet(k,null));
+  ['omoide.token','omoide.exp','omoide.email','omoide.signedIn','omoide.folder','omoide.index','omoide.cache','omoide.nameAsked','omoide.accessOK'].forEach(k=>lsSet(k,null));
   await clearLocal();
   location.replace(location.pathname);
 };
@@ -2197,13 +2230,13 @@ async function handleJoin(id){
     finally{ busy(false); }
     return;
   }
-  joinTarget={ id, roomName:rn };
+  joinTarget={ id, roomName:rn, access:inv.access||null };
   $('joinLead').textContent=`${inv.name||'ご家族'}さんから「${rn}」の家族の美術館に招待されています。`;
   $('joinForm').style.display=''; $('joinDone').style.display='none'; $('inJoinName').value='';
   show('joinSheet');
 }
-$('joinCancel').onclick=()=>show('joinSheet',false);
-$('joinClose').onclick=()=>show('joinSheet',false);
+$('joinCancel').onclick=()=>{ show('joinSheet',false); afterGate(); };
+$('joinClose').onclick=()=>{ show('joinSheet',false); afterGate(); };
 $('joinGo').onclick=async()=>{
   const n=$('inJoinName').value.trim(); if(!n){ $('inJoinName').focus(); return; }
   if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
@@ -2214,10 +2247,119 @@ $('joinGo').onclick=async()=>{
     const msg=`「${sh.roomName||'家族'}」の美術館に参加しました（${n}）。このリンクを開くと、わたしの作品も家族の美術館に並びます。\n${url}`;
     $('joinNotify').href=lineHref(msg); $('joinCopy').onclick=()=>copyText(url);
     $('joinForm').style.display='none'; $('joinDone').style.display='';
+    if(joinTarget.access){ const list=await loadCodes(); if(list && list.has(joinTarget.access) && !(remote.access&&list.has(remote.access.h))) await adoptAccess(joinTarget.access,'family'); }
   }catch(e){ if(e instanceof AuthError) needAuth(); console.warn(e); toast('参加できませんでした'); }
 };
 $('viewInfoOk').onclick=()=>show('viewInfoSheet',false);
 $('viewInfoMine').onclick=()=>{ location.href=APP_URL; };
+
+/* ---------------- 招待コード ---------------- */
+// codes.json には、コードを暗号化したもの（ハッシュ）だけを置く。ファイルが無いときは誰でも使える。
+const enc=t=>new TextEncoder().encode(t);
+const normCode=c=>String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+async function codeHash(code){
+  const key=await crypto.subtle.importKey('raw', enc(normCode(code)), 'PBKDF2', false, ['deriveBits']);
+  const bits=await crypto.subtle.deriveBits({ name:'PBKDF2', salt:enc('omoide-museum-code-v1'), iterations:150000, hash:'SHA-256' }, key, 256);
+  return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function loadCodes(){   // Set=有効なコード, null=制限なし, undefined=読めなかった
+  try{ const r=await fetch('codes.json?t='+Date.now(), {cache:'no-store'}); if(r.status===404) return null; if(!r.ok) return undefined;
+    const j=await r.json(); return new Set((j.codes||[]).map(c=>c.h).filter(Boolean)); }catch(e){ return undefined; }
+}
+async function adoptAccess(h, via){
+  try{ remote=await drive.mutate(d=>{ d.access={ h, via, at:Date.now() }; }); saveLocalIndex(); }catch(e){ if(e instanceof AuthError) needAuth(); }
+  lsSet('omoide.accessOK','1');
+}
+let gateOpen=false;
+async function checkAccess(){
+  if(viewOnly || !auth.signedIn) return true;
+  const list=await loadCodes();
+  if(list===null) return true;
+  if(list===undefined){ if(lsGet('omoide.accessOK')==='1') return true; showCodeSheet('いまは確認できませんでした。電波のよいところで開き直してください。'); return false; }
+  const mine=remote.access&&remote.access.h;
+  if(mine && list.has(mine)){ lsSet('omoide.accessOK','1'); return true; }
+  // 家族の美術館のだれかが有効なコードを持っていれば、そのまま使える
+  if(myShare()){ try{ const map=await refreshRoom(); for(const [,pj] of (map||[])){ if(pj && pj.access && list.has(pj.access)){ await adoptAccess(pj.access,'family'); await render(true); return true; } } }catch(e){} }
+  lsSet('omoide.accessOK',null);
+  showCodeSheet(mine ? 'このコードは使えなくなりました。担当者にお問い合わせください。' : '');
+  return false;
+}
+function showCodeSheet(msg){
+  gateOpen=true; $('inCode').value=''; const e=$('codeErr'); e.style.display=msg?'block':'none'; e.textContent=msg||'';
+  show('codeSheet'); setTimeout(()=>$('inCode').focus(),150);
+}
+async function afterGate(){
+  const ok=await checkAccess();
+  if(ok && !remote.name && lsGet('omoide.nameAsked')!=='1') openName();
+}
+let codeTries=0, codeWait=0;
+$('codeGo').onclick=async()=>{
+  const e=$('codeErr'), c=normCode($('inCode').value);
+  if(Date.now()<codeWait){ e.style.display='block'; e.textContent='少し待ってから、もう一度お試しください。'; return; }
+  if(c.length<8){ e.style.display='block'; e.textContent='8けたのコードを入力してください。'; return; }
+  busy(true,'確認しています…');
+  try{
+    const [h, list]=await Promise.all([codeHash(c), loadCodes()]);
+    if(list===undefined){ e.style.display='block'; e.textContent='確認できませんでした。電波のよいところで、もう一度お試しください。'; return; }
+    if(list===null || list.has(h)){
+      await adoptAccess(h,'code'); show('codeSheet',false); gateOpen=false; toast('ようこそ、おもいで美術館へ！',3000);
+      if(!remote.name && lsGet('omoide.nameAsked')!=='1') openName();
+      return;
+    }
+    codeTries++; if(codeTries>=5){ codeWait=Date.now()+30000; codeTries=0; }
+    e.style.display='block'; e.textContent='コードが違うようです。もう一度ご確認ください。';
+  }finally{ busy(false); }
+};
+$('inCode').addEventListener('keydown',ev=>{ if(ev.key==='Enter') $('codeGo').click(); });
+$('inCode').addEventListener('input',ev=>{ const v=normCode(ev.target.value).slice(0,8); ev.target.value = v.length>4 ? v.slice(0,4)+'-'+v.slice(4) : v; });
+$('codeLogout').onclick=async()=>{
+  try{ if(auth.token) await fetch('https://oauth2.googleapis.com/revoke?token='+encodeURIComponent(auth.token),{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'}}).catch(()=>{}); }catch(e){}
+  ['omoide.token','omoide.exp','omoide.email','omoide.signedIn','omoide.folder','omoide.index','omoide.cache','omoide.nameAsked','omoide.accessOK'].forEach(k=>lsSet(k,null));
+  await clearLocal(); location.replace(location.pathname);
+};
+
+/* ---------------- スマホの「戻る」ボタン ---------------- */
+// 開いている画面の数だけ履歴を積んでおき、戻るで1つずつ閉じる。館内で戻ると「出ますか？」を聞く。
+const NAV_ORDER=['exitSheet','cam','codeSheet','termsSheet','joinSheet','nameSheet','inappSheet','homeSheet','bookfull','viewSheet','flowSheet','listSheet','addSheet','familySheet','menuBook','menu3d','menuSheet','viewInfoSheet'];
+const NAV_CLOSE={ exitSheet:'exitNo', cam:'camClose', joinSheet:()=>($('joinDone').style.display!=='none'?'joinClose':'joinCancel'), nameSheet:'nameSkip', inappSheet:'inappClose',
+  homeSheet:'homeClose', viewSheet:'vClose', flowSheet:'flowClose', listSheet:'listClose', addSheet:'addCancel', familySheet:'familyClose',
+  menuBook:'menuBookCancel', menu3d:'menu3dCancel', menuSheet:'menuClose', viewInfoSheet:'viewInfoOk',
+  termsSheet:()=>($('termsBack').style.display==='none'?null:'termsBack'), codeSheet:()=>null };
+let navDepth=0, navIgnore=0, navT=0, navReady=false, exiting=false;
+function openNavs(){
+  return NAV_ORDER.filter(id=>{
+    if(id==='bookfull') return !!document.querySelector('.bookview.full');
+    const el=$(id); return el && el.classList.contains('show');
+  });
+}
+function navSync(){
+  navT=0; if(!navReady || exiting || navIgnore>0) return;
+  const want=1+openNavs().length;
+  if(want>navDepth){ while(navDepth<want){ navDepth++; history.pushState({omoide:navDepth},'',location.href); } }
+  else if(want<navDepth){ navIgnore++; history.go(want-navDepth); navDepth=want; }
+}
+const navLater=()=>{ if(!navT) navT=setTimeout(navSync,0); };
+new MutationObserver(navLater).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+addEventListener('popstate',()=>{
+  if(navIgnore>0){ navIgnore--; navLater(); return; }
+  if(!navReady || exiting) return;
+  navDepth=Math.max(0,navDepth-1);
+  const top=openNavs()[0];
+  if(top==='bookfull'){ const b=document.querySelector('.bookview.full .pgfull'); if(b) b.click(); }
+  else if(top){ let c=NAV_CLOSE[top]; if(typeof c==='function') c=c(); if(c && $(c)) $(c).click(); }
+  else show('exitSheet');
+  navLater();
+});
+$('exitNo').onclick=()=>show('exitSheet',false);
+$('exitYes').onclick=()=>{
+  exiting=true; show('exitSheet',false);
+  try{ window.close(); }catch(e){}            // ホーム画面のアプリなら、これで閉じられることがある
+  // 閉じられなかったときは、履歴を最初まで戻して「さようなら」画面に。次の「戻る」でアプリが閉じる
+  const n=navDepth; navDepth=0; if(n>0){ navIgnore++; history.go(-n); }
+  $('bye').classList.add('show');
+};
+$('byeBack').onclick=()=>{ $('bye').classList.remove('show'); exiting=false; navLater(); };
+function startBackNav(){ if(navReady) return; navReady=true; history.replaceState({omoide:0},'',location.href); navDepth=0; navSync(); }
 
 /* ---------------- 新しいコメントのお知らせ ---------------- */
 const CREAD='omoide.cread';
@@ -2870,8 +3012,8 @@ $('optShare').onclick=()=>{ const p=pending; if(!p) return; p.share=!p.share; p.
   if(!termsOK()) askTerms(null, false);
   await sync();
   const pj=lsGet('omoide.pendingJoin');
-  if(pj){ lsSet('omoide.pendingJoin',null); await handleJoin(pj); }
-  else if(result==='ok' && !remote.name && lsGet('omoide.nameAsked')!=='1') openName();
+  if(pj){ lsSet('omoide.pendingJoin',null); await handleJoin(pj); if(!$('joinSheet').classList.contains('show')) await checkAccess(); }
+  else { const ok=await checkAccess(); if(ok && result==='ok' && !remote.name && lsGet('omoide.nameAsked')!=='1') openName(); }
 })();
 </script>
 </body>
