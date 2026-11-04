@@ -204,6 +204,32 @@
   .terms input{width:22px;height:22px;flex:none;margin:2px 0 0;accent-color:var(--accent)}
   .terms b{display:block;font-size:14px;margin-bottom:2px}
   .terms li.on{border-color:var(--accent);background:#fff9f4}
+  .wbadge.arc{color:#5d6670;background:#eceff2}
+  .wrow.arc .wthumb{filter:grayscale(.6) brightness(.95)}
+  #flowSheet{background:#000;align-items:stretch;z-index:10}
+  #flowSheet .fwrap{position:relative;width:100%;height:100%;display:flex;flex-direction:column;color:#fff;
+    background:radial-gradient(ellipse at 50% 30%,#2b2b2e 0%,#0b0b0c 62%,#000 100%);padding:calc(10px + env(safe-area-inset-top)) 0 calc(14px + env(safe-area-inset-bottom))}
+  #flowSheet .ftop{display:flex;align-items:center;gap:8px;padding:4px 14px}
+  #flowSheet .ftop h2{flex:1;margin:0;font-size:16px;color:#fff}
+  #flowSheet .fclose{border:0;background:#ffffff1f;color:#fff;font:inherit;font-size:13.5px;border-radius:999px;padding:7px 13px;cursor:pointer}
+  #flowSheet .opts{justify-content:center;margin:6px 0 0}
+  #flowSheet .chip{background:#ffffff14;border-color:#ffffff30;color:#eee}
+  #flowSheet .chip.on{background:#fff;color:#111;border-color:#fff}
+  .flow{position:relative;flex:1;min-height:0;perspective:900px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+  .fcard{position:absolute;left:50%;top:44%;transform-style:preserve-3d;will-change:transform;cursor:pointer}
+  .fcard .art{width:100%;height:100%;border-radius:4px;overflow:hidden;background:#f4efe6;display:flex;align-items:center;justify-content:center;font-size:56px;
+    -webkit-box-reflect:below 3px linear-gradient(transparent 58%,#ffffff40);box-shadow:0 0 0 1px #ffffff1a}
+  .fcard .art img{width:100%;height:100%;object-fit:contain;padding:5%;box-sizing:border-box;pointer-events:none;-webkit-user-drag:none}
+  .fcard.photo .art img{object-fit:cover;padding:0}
+  .fcard .dim{position:absolute;inset:0;background:#000;pointer-events:none;border-radius:4px}
+  .fcard .tag{position:absolute;left:6px;top:6px;font-size:11px;background:#000000a8;color:#fff;border-radius:999px;padding:2px 8px}
+  .finfo{text-align:center;padding:0 18px;min-height:74px}
+  .finfo b{display:block;font-size:17px;line-height:1.4;word-break:break-all}
+  .finfo .fm{font-size:12.5px;color:#bbb;margin-top:3px}
+  .finfo .fs{display:inline-block;margin-top:6px;font-size:11.5px;border-radius:999px;padding:2px 9px;background:#ffffff1f;color:#ddd}
+  .fscrub{display:flex;align-items:center;gap:10px;padding:6px 22px 0;font-size:12px;color:#aaa}
+  .fscrub input{flex:1;accent-color:#fff}
+  .fempty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:14px;text-align:center;line-height:1.8}
   input[type=file]{display:none}
 </style>
 <script type="importmap">
@@ -424,9 +450,21 @@
 <div class="overlay" id="listSheet">
   <div class="sheet" style="min-height:70vh">
     <h2 id="listTitle">作品の一覧</h2>
-    <div class="opts"><button class="chip on" id="sortNew">新しく飾った順</button><button class="chip" id="sortDate">思い出の日付順</button></div>
+    <div class="opts"><button class="chip on" id="sortNew">新しく飾った順</button><button class="chip" id="sortDate">思い出の日付順</button><button class="chip" id="openFlow">🎞 カバーフローで見る</button></div>
+    <div class="opts" id="listFilters"><button class="chip on" data-f="all">すべて</button><button class="chip" data-f="show">🖼 展示中</button><button class="chip" data-f="arc">📦 収蔵中</button></div>
     <div class="wlist" id="wlist"></div>
     <div class="row"><button class="btn ghost" id="listClose">閉じる</button></div>
+  </div>
+</div>
+
+<!-- カバーフロー -->
+<div class="overlay" id="flowSheet">
+  <div class="fwrap">
+    <div class="ftop"><h2 id="flowTitle">作品</h2><button class="fclose" id="flowClose">✕ 閉じる</button></div>
+    <div class="opts" id="flowFilters"><button class="chip on" data-f="all">すべて</button><button class="chip" data-f="show">🖼 展示中</button><button class="chip" data-f="arc">📦 収蔵中</button></div>
+    <div class="flow" id="flow"></div>
+    <div class="finfo" id="flowInfo"></div>
+    <div class="fscrub"><span id="flowPos">1</span><input type="range" id="flowScrub" min="0" max="0" step="1" value="0"><span id="flowCount">1</span></div>
   </div>
 </div>
 
@@ -436,6 +474,7 @@
     <div class="preview" id="viewPreview"></div>
     <div class="opts" id="vSpinOpts" style="display:none"><button class="chip" id="vDir">🔄 回る向きを反転</button></div>
     <div id="vBookOpts" style="display:none"><label>種類</label><div class="opts" id="vBookCats"></div></div>
+    <div class="opts" id="vArcOpts" style="display:none"><button class="chip" id="vArchive">🖼 展示中</button></div>
     <div class="opts" id="vShareOpts" style="display:none"><button class="chip on" id="vShare">👪 家族の美術館に飾る</button></div>
     <div id="vComments" style="display:none">
       <h3>💬 家族のコメント</h3>
@@ -456,7 +495,7 @@
     <button class="choice" id="vGo" style="display:none"><span class="ic">🚶</span><div><b>見に行く</b><span>この作品の前まで歩いていきます。</span></div></button>
     <div class="note" id="vNote" style="display:none"></div>
     <div class="row">
-      <button class="btn danger" id="vDelete">しまう（削除）</button>
+      <button class="btn danger" id="vDelete">削除</button>
       <button class="btn primary" id="vClose">閉じる</button>
     </div>
   </div>
@@ -665,7 +704,7 @@ function buildPublic(d){
   const sh=d.share;
   return { kind:'omoide-public', version:1, name:sh.name||'', museum:d.name||'',
     room:{ name:sh.roomName||'', members:(sh.members||[]).filter(x=>x!==sh.publicId) },
-    items:d.items.filter(it=>it.shared!==false).map(it=>({ id:it.id, type:it.type, category:it.category, title:it.title||'', author:it.author||'', date:it.date||'', memo:it.memo||'', created:it.created,
+    items:d.items.filter(it=>it.shared!==false && !it.archived).map(it=>({ id:it.id, type:it.type, category:it.category, title:it.title||'', author:it.author||'', date:it.date||'', memo:it.memo||'', created:it.created,
       fileId:it.fileId, fileIds:it.fileIds, cutout:it.cutout, spinDir:it.spinDir, sharedAt:it.sharedAt })),
     comments:(d.comments||[]).slice(-1000).map(c=>({ id:c.id, target:c.target, text:c.text, at:c.at, name:c.name||sh.name||'' })) };
 }
@@ -1185,6 +1224,8 @@ function owlLines(){
   if(familyMode()&&!viewOnly) lines.push('ご家族の皆さんの作品が並んでいます。気に入った作品にはコメントをどうぞ。');
   if(!familyMode()&&!viewOnly&&auth.signedIn) lines.push('ここはあなただけのお部屋です。気が向いたら、家族の美術館にも出品してみてください。');
   if(viewOnly) lines.push('遠くからようこそ。作品をタップすると、大きく見られますよ。');
+  if(visitors.length){ const nm=visitors.map(g=>`${g.userData.sp.kind}の${g.userData.sp.name}さん`).join('と'); lines.push(`今日は森から${nm}が絵を見に来ていますよ。話しかけてみてください。`,`森のなかまも、ときどき作品を見に来るんです。`); }
+  else lines.push('森のなかまたちも、ときどき絵を見に来るんですよ。今日はまだ来ていませんね。');
   lines.push('手放した物も、ここではずっと飾っておけますよ。','思い出は、写真にすれば場所を取りません。','片付け、おつかれさまです。ひと休みしていってください。',
     h>=19||h<4 ? '夜は明かりを電球色にしています。落ち着くでしょう？' : '天井から差しこむ光がきれいでしょう？');
   return lines;
@@ -1194,9 +1235,13 @@ function owlTalk(first){
   const lines=owlLines(); let t;
   if(first) t=lines[0];
   else { const pool=lines.slice(1).filter(x=>x!==owlLast); t=pool[Math.floor(Math.random()*pool.length)]||lines[0]; }
-  owlLast=t; owlBubble.innerHTML=`<b>🦉 館長 ホウ</b>${esc(t)}`; owlBubble.style.display='block';
-  clearTimeout(owlTimer); owlTimer=setTimeout(()=>{ owlBubble.style.display='none'; }, 7000);
+  owlLast=t; say('🦉 館長 ホウ', t, owl, 1.62);
   if(owl){ owl.userData.hop=performance.now(); }
+}
+let talker=null;
+function say(who, text, obj, h){
+  talker={obj, h}; owlBubble.innerHTML=`<b>${esc(who)}</b>${esc(text)}`; owlBubble.style.display='block';
+  clearTimeout(owlTimer); owlTimer=setTimeout(()=>{ owlBubble.style.display='none'; }, 7000);
 }
 const owlHead=new THREE.Vector3(), owlProj=new THREE.Vector3();
 function updateOwl(now){
@@ -1206,14 +1251,191 @@ function updateOwl(now){
   const ang=Math.atan2(pos.x-owl.position.x, pos.z-owl.position.z)-owl.rotation.y;
   const a=Math.atan2(Math.sin(ang),Math.cos(ang)); u.head.rotation.y+= (Math.max(-1.3,Math.min(1.3,a))-u.head.rotation.y)*.08;
   const blink=(t%4.2)<.12; u.eyes.forEach(e=>e.scale.y= blink ? .15 : 1);
-  if(owlBubble.style.display==='block'){
-    owl.getWorldPosition(owlHead); owlHead.y+=1.62;
+  if(owlBubble.style.display==='block' && talker && talker.obj){
+    if(!talker.obj.parent){ owlBubble.style.display='none'; return; }
+    talker.obj.getWorldPosition(owlHead); owlHead.y+=talker.h;
     owlProj.copy(owlHead).project(camera);
     if(owlProj.z>1){ owlBubble.style.visibility='hidden'; }
     else { const hw=owlBubble.offsetWidth/2+8; owlBubble.style.visibility='visible'; owlBubble.style.left=Math.max(hw,Math.min(innerWidth-hw,(owlProj.x+1)/2*innerWidth))+'px'; owlBubble.style.top=Math.max(110,(1-owlProj.y)/2*innerHeight)+'px'; }
   }
 }
 
+/* ---------- 森のなかまたち（ときどき絵を見に来る） ---------- */
+const FRIENDS=[
+  {key:'rabbit', name:'ミミ', kind:'うさぎ', emoji:'🐰', fur:0xf4ece2, belly:0xffffff, shirt:0xf2a7b5, ears:'long', tail:'puff', end:'ぴょん',
+    own:['にんじん色の作品があると、うれしくなるの','耳をすませると、作品の思い出話が聞こえてくる気がするの']},
+  {key:'bear', name:'ゴロー', kind:'くま', emoji:'🐻', fur:0x9a6b45, belly:0xd9b48c, shirt:0x5b8fc9, ears:'round', tail:'stub', end:'クマ',
+    own:['冬眠の前に、いい思い出をたくさん見ておきたいんだ','はちみつ色の光が、この美術館はいいね']},
+  {key:'fox', name:'コン', kind:'きつね', emoji:'🦊', fur:0xe58a3a, belly:0xfff4e6, shirt:0x4f7a4f, ears:'point', tail:'fox', end:'コン',
+    own:['しっぽをふりながら見るのが、ぼくの楽しみ方','作品の前で、ついつい長居しちゃう']},
+  {key:'tanuki', name:'ポン太', kind:'たぬき', emoji:'🍃', fur:0x8c7458, belly:0xe9dcc6, shirt:0xd9a441, ears:'round', tail:'big', mask:true, end:'ポン',
+    own:['葉っぱを頭にのせて、こっそり見に来たんだ','ここは、なんだか落ち着くなあ']},
+  {key:'cat', name:'タマ', kind:'ねこ', emoji:'🐱', fur:0xf0f0ee, belly:0xffffff, shirt:0x9b7fc9, ears:'point', tail:'cat', whisker:true, end:'ニャ',
+    own:['ひなたぼっこの合間に寄ったの','この絵の前で、ちょっとお昼寝したくなる']},
+  {key:'dog', name:'ポチ', kind:'いぬ', emoji:'🐶', fur:0xd8b07a, belly:0xfaf0dc, shirt:0xc8693f, ears:'floppy', tail:'stub', end:'ワン',
+    own:['しっぽが勝手にふれちゃう作品ばかりだ','みんなの思い出のにおいがする気がする']},
+  {key:'penguin', name:'ペン', kind:'ペンギン', emoji:'🐧', fur:0x2f3640, belly:0xffffff, shirt:null, ears:'none', tail:'none', beak:true, end:'ペン',
+    own:['南の森から、よちよち歩いてきたんだ','すべって転ばないように、そーっと見てるの']},
+  {key:'pig', name:'ブーコ', kind:'ぶた', emoji:'🐷', fur:0xf5b8c0, belly:0xfbd3d8, shirt:0x6fb3a6, ears:'small', tail:'curl', pigNose:true, end:'ブー',
+    own:['おいしそうな色の作品を探してるの','鼻歌まじりで見て回ってるの']},
+  {key:'sheep', name:'メリー', kind:'ひつじ', emoji:'🐑', fur:0x5a4a42, belly:0x5a4a42, shirt:0xfbf7ef, ears:'side', tail:'puff', wool:true, end:'メェ',
+    own:['ふわふわの毛で、作品をそっとなでたくなる','のんびり見るのが一番だよ']},
+  {key:'squirrel', name:'クルミ', kind:'りす', emoji:'🐿', fur:0xb86b3c, belly:0xf6dcc0, shirt:0xe8c547, ears:'point', tail:'squirrel', end:'リス',
+    own:['どんぐりを集めるみたいに、好きな作品を集めてるの','ちょこちょこ走って、全部見て回るの']},
+];
+function makeFriend(sp){
+  const g=new THREE.Group(), M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.85});
+  const S=(r,m,x,y,z,sx=1,sy=1,sz=1,par=g)=>{ const o=new THREE.Mesh(new THREE.SphereGeometry(r,18,12),m); o.position.set(x,y,z); o.scale.set(sx,sy,sz); par.add(o); return o; };
+  const fur=M(sp.fur), belly=M(sp.belly), shirt=sp.shirt!==null?M(sp.shirt):fur, dark=new THREE.MeshBasicMaterial({color:0x2a1d14}), white=new THREE.MeshBasicMaterial({color:0xffffff}), pink=new THREE.MeshBasicMaterial({color:0xf3a3a3,transparent:true,opacity:.75});
+  const body=new THREE.Group(); g.add(body);
+  // 足
+  const legM = sp.beak ? M(0xf0a030) : fur;
+  const legs=[-1,1].map(s=>{ const l=new THREE.Group(); l.position.set(s*.065,.12,0); body.add(l);
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.1,10), legM); c.position.y=-.05; l.add(c); S(.05,legM,0,-.11,.02,1,.55,1.3,l); return l; });
+  // からだ
+  S(.155,shirt,0,.27,0,1,1.08,.92,body);
+  if(sp.beak) S(.12,belly,0,.25,.07,1,1.1,.7,body);
+  if(sp.wool){ const w=M(0xfbf7ef); for(let i=0;i<14;i++){ const a=i/14*Math.PI*2; S(.06,w,Math.cos(a)*.13,.22+((i%3)-1)*.06,Math.sin(a)*.11,1,1,1,body); } }
+  // うで
+  const arms=[-1,1].map(s=>{ const a=S(.05, sp.beak?fur:fur, s*.16,.28,.01,.8,1.4,.8,body); a.rotation.z=s*.35; return a; });
+  // しっぽ
+  const tail=new THREE.Group(); tail.position.set(0,.2,-.13); body.add(tail);
+  if(sp.tail==='puff') S(.055, sp.wool?M(0xfbf7ef):belly, 0,0,0,1,1,1,tail);
+  if(sp.tail==='stub') S(.04,fur,0,.02,0,1,1.2,1,tail);
+  if(sp.tail==='big'){ S(.08,fur,0,.02,-.04,1,1.3,1,tail); S(.05,M(0x4a3b2c),0,-.06,-.07,1,1,1,tail); }
+  if(sp.tail==='fox'){ S(.07,fur,0,.04,-.06,.9,1.6,1,tail).rotation.x=.6; S(.05,belly,0,.15,-.13,1,1,1,tail); }
+  if(sp.tail==='squirrel'){ for(let i=0;i<6;i++) S(.075-i*.003,fur,0,.02+i*.07,-.06-Math.sin(i/5*Math.PI)*.08,1,1,1,tail); }
+  if(sp.tail==='cat'){ for(let i=0;i<7;i++) S(.025,fur,0,i*.035,-.03-i*.015+(i>4?(i-4)*.02:0),1,1,1,tail); }
+  if(sp.tail==='curl'){ const t=new THREE.Mesh(new THREE.TorusGeometry(.03,.012,8,16,Math.PI*1.6),fur); t.rotation.y=Math.PI/2; tail.add(t); }
+  // あたま
+  const head=new THREE.Group(); head.position.y=.52; body.add(head);
+  S(.2, sp.beak?fur:fur, 0,0,0,1,.92,.95,head);
+  if(sp.beak) S(.15,belly,0,-.03,.07,1,.85,.8,head);
+  if(sp.wool){ const w=M(0xfbf7ef); for(let i=0;i<11;i++){ const a=i/10*Math.PI; S(.075,w,Math.cos(a)*.17,.1+Math.sin(a)*.1,-.02,1,1,1,head); } }
+  const eyes=[-1,1].map(s=>{ const e=S(.027,dark,s*.075,.025,.178,1,1.15,.5,head); S(.009,white,s*.075+.008,.04,.19,1,1,1,head); return e; });
+  if(sp.mask) [-1,1].forEach(s=>S(.055,M(0x4a3b2c),s*.075,.02,.15,1.1,.8,.5,head));
+  [-1,1].forEach(s=>S(.035,pink,s*.12,-.045,.15,1,.6,.4,head));
+  if(sp.beak){ const bk=new THREE.Mesh(new THREE.ConeGeometry(.035,.08,10),M(0xf0a030)); bk.rotation.x=Math.PI/2; bk.position.set(0,-.03,.21); head.add(bk); }
+  else if(sp.pigNose){ const n=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.04,16),M(0xee9aa6)); n.rotation.x=Math.PI/2; n.position.set(0,-.04,.19); head.add(n); [-1,1].forEach(s=>S(.01,dark,s*.018,-.04,.212,1,1,.4,head)); }
+  else { S(.07,belly,0,-.06,.155,1.1,.8,.75,head); S(.022,dark,0,-.035,.21,1.2,.9,.8,head); }
+  if(sp.whisker) [-1,1].forEach(s=>[0,1].forEach(k=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(.003,.003,.12,4),dark); w.rotation.z=Math.PI/2+s*(k?.15:-.1); w.position.set(s*.13,-.05+k*.02,.15); head.add(w); }));
+  // みみ
+  const ears=new THREE.Group(); head.add(ears);
+  [-1,1].forEach(s=>{
+    if(sp.ears==='long'){ const e=S(.045,fur,s*.07,.25,-.01,1,3.2,.6,ears); e.rotation.z=-s*.12; const i=S(.028,pink,s*.07,.25,.012,1,3,.4,ears); i.rotation.z=-s*.12; }
+    if(sp.ears==='round'){ S(.065,fur,s*.13,.15,-.01,1,1,.6,ears); S(.035,M(sp.mask?0x4a3b2c:sp.belly),s*.13,.15,.02,1,1,.4,ears); }
+    if(sp.ears==='point'){ const e=new THREE.Mesh(new THREE.ConeGeometry(.065,.14,4),fur); e.position.set(s*.11,.2,0); e.rotation.z=-s*.3; e.rotation.y=Math.PI/4; ears.add(e); }
+    if(sp.ears==='small'){ const e=new THREE.Mesh(new THREE.ConeGeometry(.05,.09,4),fur); e.position.set(s*.12,.17,.02); e.rotation.z=-s*.5; e.rotation.x=.3; ears.add(e); }
+    if(sp.ears==='floppy'){ const e=S(.06,M(0x9c6b3e),s*.19,.02,-.01,.55,1.4,.8,ears); e.rotation.z=s*.25; }
+    if(sp.ears==='side'){ const e=S(.05,fur,s*.21,.04,0,1.4,.6,.7,ears); }
+  });
+  if(sp.key==='tanuki'){ const leaf=new THREE.Mesh(new THREE.ConeGeometry(.05,.13,4),M(0x6aa84f)); leaf.position.set(.02,.21,.02); leaf.rotation.z=-.3; head.add(leaf); }
+  g.scale.setScalar(1.15);
+  g.traverse(o=>{ if(o.isMesh) o.userData.visitor=g; });
+  g.userData={ sp, body, head, legs, arms, tail, eyes, phase:Math.random()*10, state:'look', next:performance.now()+15000+Math.random()*25000 };
+  return g;
+}
+let visitorSpecs=null, visitors=[], standSpots=[];
+function chooseVisitors(){
+  if(visitorSpecs) return visitorSpecs;
+  const q=new URLSearchParams(location.search).get('visitors');
+  let n; if(q!==null) n=Math.min(10,Math.max(0,Number(q)||0));
+  else { const r=Math.random(); n = r<.22?0 : r<.65?1 : r<.92?2 : 3; }
+  visitorSpecs=FRIENDS.slice().sort(()=>Math.random()-.5).slice(0,n); return visitorSpecs;
+}
+function friendSpotFor(a, taken){
+  const lat=new THREE.Vector3(-a.normal.z,0,a.normal.x);
+  for(let k=0;k<14;k++){
+    const d=a.dist*(.55+Math.random()*.25), off=(Math.random()-.5)*.9;
+    const x=a.pos.x+a.normal.x*d+lat.x*off, z=a.pos.z+a.normal.z*d+lat.z*off;
+    if(Math.abs(x)>W/2-.45 || Math.abs(z)>L/2-.6) continue;
+    const st=startPoint(), op=owlPoint();
+    if(Math.hypot(x-st.x,z-st.z)<1.1 || Math.hypot(x-op.x,z-op.z)<.7) continue;
+    if(standSpots.some(p=>Math.hypot(p.x-x,p.z-z)<.55)) continue;
+    if(taken.some(p=>Math.hypot(p.x-x,p.z-z)<.6)) continue;
+    return {x,z};
+  }
+  return null;
+}
+function placeVisitors(items){
+  visitors=[];
+  const ids=items.map(i=>i.id).filter(id=>anchors.has(id)); if(!ids.length) return;
+  standSpots=[]; items.forEach(i=>{ if((i.type==='model'||i.type==='spin') && anchors.has(i.id)){ const p=anchors.get(i.id).pos; standSpots.push({x:p.x,z:p.z}); } });
+  const taken=[];
+  chooseVisitors().forEach((sp,k)=>{
+    for(let t=0;t<8;t++){
+      const id=ids[Math.floor(Math.random()*ids.length)], a=anchors.get(id), spot=friendSpotFor(a, taken); if(!spot) continue;
+      const g=makeFriend(sp); g.position.set(spot.x,0,spot.z); g.userData.watch=id; faceAnchor(g,a,true);
+      itemsGroup.add(g); g.traverse(o=>{ if(o.isMesh) pickables.push(o); }); visitors.push(g); taken.push(spot); break;
+    }
+  });
+}
+function faceAnchor(g,a,instant){ const y=Math.atan2(a.pos.x-g.position.x, a.pos.z-g.position.z); g.userData.yaw=y; if(instant) g.rotation.y=y; }
+function segClear(x0,z0,x1,z1){
+  const pts=standSpots.concat([owlPoint()]);
+  return pts.every(p=>{ const dx=x1-x0, dz=z1-z0, l2=dx*dx+dz*dz||1; let t=((p.x-x0)*dx+(p.z-z0)*dz)/l2; t=Math.max(0,Math.min(1,t)); return Math.hypot(x0+dx*t-p.x, z0+dz*t-p.z)>.5; });
+}
+const friendTmp=new THREE.Vector3();
+function updateVisitors(now, dt){
+  const t=now/1000;
+  visitors.forEach(g=>{
+    const u=g.userData; if(!g.parent) return;
+    // ときどき別の作品へ歩いていく
+    if(u.state==='look' && now>u.next){
+      u.next=now+20000+Math.random()*30000;
+      const ids=[...anchors.keys()].filter(id=>id!==u.watch);
+      if(ids.length){ const id=ids[Math.floor(Math.random()*ids.length)], a=anchors.get(id);
+        const others=visitors.filter(o=>o!==g).map(o=>({x:(o.userData.dest||o.position).x, z:(o.userData.dest||o.position).z}));
+        const sp=friendSpotFor(a, others);
+        if(sp && segClear(g.position.x,g.position.z,sp.x,sp.z) && Math.hypot(sp.x-pos.x,sp.z-pos.z)>.8){ u.state='walk'; u.dest=new THREE.Vector3(sp.x,0,sp.z); u.watch=id; u.yaw=Math.atan2(sp.x-g.position.x, sp.z-g.position.z); }
+      }
+    }
+    let walking=false;
+    if(u.state==='walk'){
+      friendTmp.copy(u.dest).sub(g.position); friendTmp.y=0; const d=friendTmp.length();
+      if(d<.03){ u.state='look'; u.dest=null; const a=anchors.get(u.watch); if(a) faceAnchor(g,a); }
+      else { g.position.addScaledVector(friendTmp.normalize(), Math.min(d, dt*.45)); walking=true; }
+    }
+    let dy=(u.yaw||0)-g.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); g.rotation.y+=dy*Math.min(1,dt*3);
+    // からだの動き
+    const ph=t*(walking?9:1.5)+u.phase;
+    u.body.position.y = walking ? Math.abs(Math.sin(ph))*.03 : Math.sin(ph)*.006 + (u.hop && now-u.hop<450 ? Math.sin((now-u.hop)/450*Math.PI)*.1 : 0);
+    u.legs[0].rotation.x = walking ? Math.sin(ph)*.6 : 0; u.legs[1].rotation.x = walking ? -Math.sin(ph)*.6 : 0;
+    u.arms.forEach((a,i)=>{ a.rotation.x = walking ? Math.sin(ph+(i?0:Math.PI))*.5 : 0; });
+    u.tail.rotation.y = Math.sin(t*(u.sp.key==='dog'?9:2.2)+u.phase)*.35;
+    // 近くに来たらこちらを見る／ふだんは作品を見ながら首をかしげる
+    const near=Math.hypot(pos.x-g.position.x,pos.z-g.position.z)<2.6 && !walking;
+    let hy=0, hz=Math.sin(t*.7+u.phase)*.12;
+    if(near){ const a=Math.atan2(pos.x-g.position.x,pos.z-g.position.z)-g.rotation.y; hy=Math.max(-1.1,Math.min(1.1,Math.atan2(Math.sin(a),Math.cos(a)))); hz=0; }
+    u.head.rotation.y+=(hy-u.head.rotation.y)*.08; u.head.rotation.z+=(hz-u.head.rotation.z)*.05;
+    const blink=((t+u.phase)%3.7)<.12; u.eyes.forEach(e=>e.scale.y= blink ? .15 : 1.15);
+  });
+}
+let friendLast='';
+function friendTalk(g){
+  const u=g.userData, sp=u.sp, e=sp.end;
+  const h=Math.floor(timeState().h)%24;
+  const greet = h<4?'こんな夜ふけに、こんばんは': h<11?'おはよう': h<17?'こんにちは': 'こんばんは';
+  const items=allItems().filter(i=>!i.sample);
+  const watch=items.find(i=>i.id===u.watch) || (allItems().find(i=>i.id===u.watch));
+  const fav = Math.random()<.65 && watch ? watch : items[Math.floor(Math.random()*items.length)] || watch;
+  const lines=[`${greet}${e}！${sp.kind}の${sp.name}だよ`, `森から、絵を見に来たんだ${e}`, `ホウさんに、ここのことを教えてもらったんだ${e}`, ...sp.own.map(x=>x+e)];
+  if(fav){
+    const reason = fav.type==='spin' ? 'くるっと回るところがおもしろいんだ' : fav.type==='book' ? 'ページをめくるのが楽しいんだ' : fav.type==='model' ? '立体なのがすごいんだ'
+      : ['色がとってもきれいなんだ','見てると、あったかい気持ちになるんだ','描いた人の楽しさが伝わってくるんだ','ずっと見ていられるんだ'][Math.floor(Math.random()*4)];
+    lines.push(`いちばんのお気に入りは「${fav.title||'無題'}」！${reason}${e}`, `「${fav.title||'無題'}」、もう見た？${reason}${e}`);
+    if(fav.author) lines.push(`${fav.author}さんの作品、すてきだね${e}`);
+    if(fav.date) lines.push(`「${fav.title||'無題'}」は${fav.date.slice(0,4)}年の思い出なんだって${e}`);
+  }
+  if(watch && watch===fav) lines.push(`この「${watch.title||'無題'}」、ずっと見てたの${e}`);
+  const others=visitors.filter(o=>o!==g).map(o=>o.userData.sp.name);
+  if(others.length) lines.push(`今日は${others.join('と')}も来てるよ${e}`);
+  if(h>=19||h<4) lines.push(`夜の美術館って、ちょっとドキドキする${e}`);
+  const pool=lines.filter(x=>x!==friendLast); const t=pool[Math.floor(Math.random()*pool.length)];
+  friendLast=t; u.hop=performance.now(); say(`${sp.emoji} ${sp.name}（${sp.kind}）`, t, g, .98);
+}
+
+if(window.OMOIDE_TEST) window.__t={ FRIENDS, makeFriend, itemsGroup, scene, camera, get visitors(){ return visitors; }, friendTalk, setPose:(x,z,y,p)=>{ pos.set(x,EYE,z); yaw=y; pitch=p; } };
 let building=Promise.resolve();
 function buildGallery(items){ building = building.then(()=>doBuild(items)).catch(e=>console.error(e)); return building; }
 async function doBuild(items){
@@ -1276,6 +1498,7 @@ async function doBuild(items){
 
   buildShelves(books, loaded);
   placeOwl();
+  placeVisitors(items);
   refreshBubbles();
 
   const real=items.filter(i=>!i.sample).length;
@@ -1339,6 +1562,7 @@ function tap(cx,cy){
   ray.setFromCamera(ndc,camera);
   const hit=ray.intersectObjects(pickables,false)[0];
   if(!hit) return;
+  if(hit.object.userData.visitor){ friendTalk(hit.object.userData.visitor); return; }
   if(hit.object.userData.npc){ owlTalk(false); return; }
   if(hit.object.userData.item){ openViewer(hit.object.userData.item); return; }
   if(hit.object===floorMesh){ goal=clampPos(hit.point.clone()); goalYaw=null; hideHint(); }
@@ -1391,7 +1615,7 @@ function loop(){
     if(k2!==u.kb){ u.kb=k2; u.picB.material.map=u.texs[k2]; u.picB.material.needsUpdate=true; }
     const t=fadeCurve(f); u.pic.material.opacity=1-t; u.picB.material.opacity=t;
   });
-  updateOwl(performance.now());
+  updateOwl(performance.now()); updateVisitors(performance.now(), dt);
   bubbleGroup.children.forEach((b,i)=>{ b.position.y=b.userData.y+Math.sin(now*2.2+i)*.04; });
   renderer.render(scene,camera);
   if(mini){ mini.controls.update(); mini.renderer.render(mini.scene,mini.camera); }
@@ -1429,11 +1653,18 @@ async function refreshRoom(){
 }
 function loadLocalIndex(){ try{ const d=JSON.parse(lsGet('omoide.cache')||'null'); if(d&&Array.isArray(d.items)) remote=d; }catch(e){} }
 function saveLocalIndex(){ lsSet('omoide.cache', JSON.stringify(remote)); }
+// 自分の作品（収蔵中も含む）
+function myItems(){
+  if(!auth.signedIn || viewOnly) return [];
+  const ids=new Set(remote.items.map(i=>i.id));
+  return remote.items.concat(pendingItems.filter(p=>!ids.has(p.id)));
+}
+// 部屋・美術館に飾る作品（収蔵中は除く）
 function allItems(){
   if(viewOnly) return viewItems.slice().sort((a,b)=>(a.created||0)-(b.created||0));
   if(!auth.signedIn) return SAMPLES;
   const ids=new Set(remote.items.map(i=>i.id));
-  const mine=remote.items.concat(pendingItems.filter(p=>!ids.has(p.id)));
+  const mine=remote.items.concat(pendingItems.filter(p=>!ids.has(p.id))).filter(i=>!i.archived);
   if(mode==='family' && myShare()){
     const nm=myShare().name||'';
     return mine.filter(i=>i.shared!==false).map(i=>({ ...i, ownerName:nm, mineInRoom:true })).concat(roomItems).sort((a,b)=>(a.created||0)-(b.created||0));
@@ -1692,7 +1923,7 @@ function makeBookViewer(container, item, opts={}){
     leaf.style.display='block'; setP(f,0); return f;
   };
   const finish=(f,done)=>new Promise(res=>{
-    const from=f.p, target=done?1:0, dur=Math.max(250, 1300*Math.abs(target-from)), t0=performance.now();
+    const from=f.p, target=done?1:0, dur=(f.dir>0&&done) ? Math.max(800, 1800*Math.abs(target-from)) : Math.max(250, 1300*Math.abs(target-from)), t0=performance.now();
     const step=now=>{ if(!alive) return res();
       const t=Math.min(1,(now-t0)/dur); setP(f, from+(target-from)*ease(t));
       if(t<1) return requestAnimationFrame(step);
@@ -1765,7 +1996,7 @@ async function openViewer(item){
   $('vTitle').disabled=$('vMemo').disabled=$('vDate').disabled=$('vAuthor').disabled=readOnly;
   if(readOnly){ $('vAuthorChips').style.display='none'; } else drawAuthorChips('vAuthorChips','vAuthor');
   $('vOwner').textContent = item.ownerName ? `登録した人：${item.ownerName}` : '';
-  $('vGo').style.display = $('listSheet').classList.contains('show') ? '' : 'none';
+  $('vGo').style.display = ($('listSheet').classList.contains('show')||$('flowSheet').classList.contains('show')) ? '' : 'none';
   const hint = item.type==='model' ? '　・　指で回して見られます' : item.type==='spin' ? '　・　くるっと写真' : item.type==='book' ? `　・　📚 ${item.category||'本棚'}（${fileIdsOf(item).length||(item.blobs||[]).length}ページ）　ページの右側をタップ、または左になぞるとめくれます` : '';
   $('vMeta').textContent=hint.replace(/^　・　/,'');
   if(item.sample){ note.style.display='block'; note.textContent='これは見本の作品です。ログインすると、あなたの作品を飾れます。'; }
@@ -1774,11 +2005,13 @@ async function openViewer(item){
   $('vSpinOpts').style.display = (item.type==='spin' && !readOnly) ? 'flex' : 'none';
   $('vBookOpts').style.display = (item.type==='book' && !readOnly) ? '' : 'none';
   if(item.type==='book' && !readOnly){ vCat=item.category||'その他'; drawCats('vBookCats', ()=>vCat, c=>{ vCat=c; }); }
-  $('vShareOpts').style.display = (!readOnly && myShare()) ? 'flex' : 'none';
-  $('vShare').classList.toggle('on', item.shared!==false); $('vShare').textContent = item.shared!==false ? '👪 家族の美術館に出しています（タップでしまう）' : '🏠 わたしの部屋だけ（タップで家族の美術館に出す）';
+  $('vArcOpts').style.display = !readOnly ? 'flex' : 'none'; setArcChip(!!item.archived);
+  $('vShareOpts').style.display = (!readOnly && myShare() && !item.archived) ? 'flex' : 'none';
+  if(item.archived) $('vGo').style.display='none';
+  $('vShare').classList.toggle('on', item.shared!==false); $('vShare').textContent = item.shared!==false ? '👪 家族の美術館に出しています（タップで部屋だけにする）' : '🏠 わたしの部屋だけ（タップで家族の美術館に出す）';
   $('vDir').classList.toggle('on', (item.spinDir||1)<0);
   $('vDelete').style.display=readOnly?'none':'';
-  $('vDelete').classList.remove('armed'); $('vDelete').textContent='しまう（削除）';
+  $('vDelete').classList.remove('armed'); $('vDelete').textContent='削除';
   $('cInput').value=''; viewNew=new Set(unreadFor(item).map(c=>c.id)); drawComments(item); markRead(item); refreshCommentsFor(item);
   show('viewSheet');
   try{
@@ -1808,19 +2041,37 @@ async function closeViewer(){
   }catch(e){ if(e instanceof AuthError) needAuth(); toast('保存できませんでした'); }
 }
 const listOpen=()=>$('listSheet').classList.contains('show');
-$('vClose').onclick=async()=>{ await closeViewer(); if(listOpen()) drawList(); };
-$('vGo').onclick=async()=>{ const it=current; await closeViewer(); show('listSheet',false); if(it){ await building; visit(it.id); } };
+$('vClose').onclick=async()=>{ await closeViewer(); if(listOpen()) drawList(); if(flowOpen()) drawFlow(true); };
+$('vGo').onclick=async()=>{ const it=current; await closeViewer(); show('listSheet',false); show('flowSheet',false); if(it){ await building; visit(it.id); } };
 $('vShare').onclick=async()=>{
   const item=latest(current); if(!item || item.sample || item.pub || !myShare()) return; current=item;
   const on = item.shared===false;   // 切り替え後
-  const setChip=v=>{ $('vShare').classList.toggle('on', v); $('vShare').textContent = v ? '👪 家族の美術館に出しています（タップでしまう）' : '🏠 わたしの部屋だけ（タップで家族の美術館に出す）'; };
-  if(item.local){ const o=(await outboxAll()).find(x=>x.id===item.id); if(o){ o.shared=on; if(on) o.sharedAt=Date.now(); else delete o.sharedAt; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } item.shared=on; setChip(on); await render(true); toast(on?'家族の美術館に出しました':'わたしの部屋にしまいました'); return; }
+  const setChip=v=>{ $('vShare').classList.toggle('on', v); $('vShare').textContent = v ? '👪 家族の美術館に出しています（タップで部屋だけにする）' : '🏠 わたしの部屋だけ（タップで家族の美術館に出す）'; };
+  if(item.local){ const o=(await outboxAll()).find(x=>x.id===item.id); if(o){ o.shared=on; if(on) o.sharedAt=Date.now(); else delete o.sharedAt; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } item.shared=on; setChip(on); await render(true); toast(on?'家族の美術館に出しました':'わたしの部屋だけにしました'); return; }
   if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
-  busy(true, on ? '家族の美術館に出しています…' : 'わたしの部屋にしまっています…');
+  busy(true, on ? '家族の美術館に出しています…' : 'わたしの部屋だけにしています…');
   try{
     for(const fid of fileIdsOf(item)) await drive.setPublic(fid, on);
     remote=await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ if(on){ delete it.shared; it.sharedAt=Date.now(); } else { it.shared=false; delete it.sharedAt; } } });
-    saveLocalIndex(); item.shared=on; setChip(on); await render(true); toast(on?'家族の美術館に出しました':'わたしの部屋にしまいました');
+    saveLocalIndex(); item.shared=on; setChip(on); await render(true); toast(on?'家族の美術館に出しました':'わたしの部屋だけにしました');
+  }catch(e){ if(e instanceof AuthError) needAuth(); toast('変更できませんでした'); }
+  finally{ busy(false); }
+};
+function setArcChip(arc){
+  const b=$('vArchive'); b.classList.toggle('on', arc);
+  b.textContent = arc ? '📦 収蔵庫にしまってあります（タップで展示する）' : '🖼 展示中（タップで収蔵庫にしまう）';
+}
+$('vArchive').onclick=async()=>{
+  const item=latest(current); if(!item || item.sample || item.pub) return; current=item;
+  const arc=!item.archived;   // 切り替え後
+  const after=()=>{ item.archived=arc; setArcChip(arc); $('vShareOpts').style.display=(myShare()&&!arc)?'flex':'none'; $('vGo').style.display='none';
+    toast(arc?'収蔵庫にしまいました（一覧からいつでも見られます）':'展示しました',3000); if(listOpen()) drawList(); if(flowOpen()) drawFlow(true); };
+  if(item.local){ const o=(await outboxAll()).find(x=>x.id===item.id); if(o){ if(arc) o.archived=true; else delete o.archived; await outboxPut(o); pendingItems=pendingItems.map(x=>x.id===o.id?o:x); } after(); await render(true); return; }
+  if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+  busy(true, arc ? '収蔵庫にしまっています…' : '展示しています…');
+  try{
+    remote=await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it){ if(arc){ it.archived=true; it.archivedAt=Date.now(); } else { delete it.archived; delete it.archivedAt; } } });
+    saveLocalIndex(); after(); await render(true);
   }catch(e){ if(e instanceof AuthError) needAuth(); toast('変更できませんでした'); }
   finally{ busy(false); }
 };
@@ -1834,19 +2085,19 @@ $('vDir').onclick=async()=>{
   try{ remote=await drive.mutate(d=>{ const it=d.items.find(x=>x.id===item.id); if(it) it.spinDir=nd; }); saveLocalIndex(); item.spinDir=nd; await render(true); }
   catch(e){ if(e instanceof AuthError) needAuth(); toast('保存できませんでした'); }
 };
-$('viewSheet').addEventListener('click',async e=>{ if(e.target.id==='viewSheet'){ await closeViewer(); if(listOpen()) drawList(); } });
+$('viewSheet').addEventListener('click',async e=>{ if(e.target.id==='viewSheet'){ await closeViewer(); if(listOpen()) drawList(); if(flowOpen()) drawFlow(true); } });
 $('vDelete').onclick=async()=>{
   const b=$('vDelete');
-  if(!b.classList.contains('armed')){ b.classList.add('armed'); b.textContent='もう一度押すと削除'; return; }
+  if(!b.classList.contains('armed')){ b.classList.add('armed'); b.textContent='もう一度押すと削除（ゴミ箱へ）'; return; }
   const item=latest(current); current=null; show('viewSheet',false); closeMini(); closeSpinView();
-  if(item.local){ await outboxDel(item.id); pendingItems=pendingItems.filter(x=>x.id!==item.id); forget(item.id); await render(); if(listOpen()) drawList(); toast('作品をしまいました'); return; }
+  if(item.local){ await outboxDel(item.id); pendingItems=pendingItems.filter(x=>x.id!==item.id); forget(item.id); await render(); if(listOpen()) drawList(); if(flowOpen()) drawFlow(true); toast('作品を削除しました'); return; }
   if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
-  busy(true,'しまっています…');
+  busy(true,'削除しています…');
   try{
     remote = await drive.mutate(d=>{ d.items=d.items.filter(x=>x.id!==item.id); });
     saveLocalIndex();
     for(const id of fileIdsOf(item)) await drive.trash(id);
-    forget(item.id); await render(); if(listOpen()) drawList(); toast('作品をしまいました（ドライブのゴミ箱に移りました）',3600);
+    forget(item.id); await render(); if(listOpen()) drawList(); if(flowOpen()) drawFlow(true); toast('作品を削除しました（ドライブのゴミ箱に移りました）',3600);
   }catch(e){ if(e instanceof AuthError) needAuth(); toast('削除できませんでした'); }
   finally{ busy(false); }
 };
@@ -1982,7 +2233,7 @@ function markRead(item){ const t=commentTarget(item); if(!t) return; const m=rea
 let unreadIds=new Set(), viewNew=new Set();
 function unreadItems(){
   if(viewOnly || !myShare() || !auth.signedIn) return [];
-  return remote.items.filter(i=>i.shared!==false).concat(roomItems)
+  return remote.items.filter(i=>i.shared!==false && !i.archived).concat(roomItems)
     .map(i=>{ const u=unreadFor(i); return { item:i, n:u.length, last:u.reduce((a,c)=>Math.max(a,c.at),0) }; })
     .filter(x=>x.n>0).sort((a,b)=>b.last-a.last);
 }
@@ -2090,23 +2341,37 @@ function drawAuthorChips(boxId, inputId){
 }
 
 /* ---------------- 作品の一覧 ---------------- */
-let listSort='new';
-const TYPE_LABEL={photo:'写真・絵', spin:'くるっと写真', model:'3D', book:'本棚'};
-function drawList(){
-  const items=allItems().slice();
+let listSort='new', listFilter='all';
+const canFilter=()=>auth.signedIn && !viewOnly && !familyMode();
+function listItems(){
+  let items = canFilter() ? myItems().slice() : allItems().slice();
+  if(canFilter()){ if(listFilter==='show') items=items.filter(i=>!i.archived); else if(listFilter==='arc') items=items.filter(i=>i.archived); }
   if(listSort==='date') items.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.created||0)-(a.created||0));
   else if(listSort==='comment'){ const last=it=>unreadFor(it).reduce((a,c)=>Math.max(a,c.at),0); items.sort((a,b)=>last(b)-last(a) || (b.created||0)-(a.created||0)); }
   else items.sort((a,b)=>(b.created||0)-(a.created||0));
+  return items;
+}
+function drawFilterChips(boxId){
+  const box=$(boxId); box.style.display = canFilter() ? 'flex' : 'none';
+  const all=myItems(), n={all:all.length, show:all.filter(i=>!i.archived).length, arc:all.filter(i=>i.archived).length};
+  const lab={all:'すべて', show:'🖼 展示中', arc:'📦 収蔵中'};
+  box.querySelectorAll('.chip').forEach(b=>{ const f=b.dataset.f; b.classList.toggle('on', listFilter===f); b.textContent=`${lab[f]} ${n[f]}`;
+    b.onclick=()=>{ listFilter=f; if(boxId==='flowFilters') drawFlow(); else drawList(); }; });
+}
+const TYPE_LABEL={photo:'写真・絵', spin:'くるっと写真', model:'3D', book:'本棚'};
+function drawList(){
+  const items=listItems();
+  drawFilterChips('listFilters');
   const real=items.filter(i=>!i.sample).length;
   $('listTitle').textContent = real ? `作品の一覧（${real}点）` : '作品の一覧（見本）';
   $('sortNew').classList.toggle('on', listSort==='new'); $('sortDate').classList.toggle('on', listSort==='date');
   const box=$('wlist'); box.innerHTML='';
-  if(!items.length){ box.innerHTML='<div class="empty" style="text-align:center;color:var(--muted);padding:30px 0">まだ作品がありません。<br>下のボタンから飾ってみましょう。</div>'; return; }
+  if(!items.length){ box.innerHTML = listFilter==='arc'&&canFilter() ? '<div class="empty" style="text-align:center;color:var(--muted);padding:30px 0">収蔵庫は空です。<br>作品を開いて「収蔵庫にしまう」を押すと、ここに入ります。</div>' : '<div class="empty" style="text-align:center;color:var(--muted);padding:30px 0">まだ作品がありません。<br>下のボタンから飾ってみましょう。</div>'; return; }
   items.forEach(it=>{
-    const row=document.createElement('button'); row.className='wrow';
+    const row=document.createElement('button'); row.className='wrow'+(it.archived?' arc':'');
     const th=document.createElement('div'); th.className='wthumb'+(it.cutout?' cut':''); th.textContent = it.type==='model' ? '🧊' : '';
     const info=document.createElement('div'); info.className='winfo';
-    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.author?'作：'+esc(it.author)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${it.type==='book'?'📚 '+esc(it.category||'本棚'):(TYPE_LABEL[it.type]||'')}${myShare()&&!familyMode()&&it.shared!==false?'<span class="wbadge">👪 出品中</span>':''}${isFresh(it)?'<span class="wbadge">✨ 新しく出品</span>':''}${(()=>{ const n=commentsVisible(it)?commentsFor(it).length:0; const u=unreadFor(it).length; return n?`<span class="wbadge"${u?' style="background:#c8693f;color:#fff"':''}>💬 ${n}${u?'（新着'+u+'）':''}</span>`:''; })()}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
+    info.innerHTML=`<b>${esc(it.title||'無題')}</b><div class="wm">${it.author?'作：'+esc(it.author)+'・':''}${esc(fmtDate(it.date)||'日付なし')}・${it.type==='book'?'📚 '+esc(it.category||'本棚'):(TYPE_LABEL[it.type]||'')}${it.archived?'<span class="wbadge arc">📦 収蔵中</span>':''}${myShare()&&!familyMode()&&it.shared!==false&&!it.archived?'<span class="wbadge">👪 出品中</span>':''}${isFresh(it)?'<span class="wbadge">✨ 新しく出品</span>':''}${(()=>{ const n=commentsVisible(it)?commentsFor(it).length:0; const u=unreadFor(it).length; return n?`<span class="wbadge"${u?' style="background:#c8693f;color:#fff"':''}>💬 ${n}${u?'（新着'+u+'）':''}</span>`:''; })()}${it.local?'<span class="wbadge">保存待ち</span>':''}</div>`+(it.memo?`<div class="wmemo">${esc(it.memo)}</div>`:'');
     row.append(th,info);
     row.onclick=()=>openViewer(it);
     box.appendChild(row);
@@ -2114,6 +2379,88 @@ function drawList(){
   });
 }
 $('openList').onclick=()=>{ drawList(); show('listSheet'); };
+
+/* ---------------- カバーフロー ---------------- */
+const flowOpen=()=>$('flowSheet').classList.contains('show');
+const thumbCache=new Map();
+async function thumbUrl(it){
+  if(it.type==='model') return null;
+  const c=loadedCache.get(it.id); if(c && c.urls && c.urls[0]) return c.urls[0];
+  if(it.sample){ const d=await loadItem(it); return d.urls?d.urls[0]:null; }
+  if(thumbCache.has(it.id)) return thumbCache.get(it.id);
+  const u=URL.createObjectURL(await getBlobAt(it,0)); thumbCache.set(it.id,u); return u;
+}
+const fl={ items:[], cards:[], pos:0, target:null, vel:0, raf:0, drag:null, size:200 };
+function drawFlow(keep){
+  const box=$('flow'), prevId = keep && fl.items[Math.round(fl.pos)] ? fl.items[Math.round(fl.pos)].id : null;
+  drawFilterChips('flowFilters');
+  fl.items=listItems(); box.innerHTML=''; fl.cards=[];
+  const real=fl.items.filter(i=>!i.sample).length;
+  $('flowTitle').textContent = canFilter() ? (listFilter==='arc'?'収蔵庫':listFilter==='show'?'展示中の作品':'わたしの作品') : (familyMode()?'美術館の作品':'作品');
+  if(!fl.items.length){ box.innerHTML=`<div class="fempty">${listFilter==='arc'&&canFilter()?'収蔵庫は空です。':'まだ作品がありません。'}</div>`; $('flowInfo').innerHTML=''; $('flowScrub').max=0; $('flowPos').textContent='0'; $('flowCount').textContent='0'; return; }
+  fl.size=Math.min(box.clientWidth*.56, box.clientHeight*.58, 300);
+  fl.items.forEach((it,i)=>{
+    const c=document.createElement('div'); c.className='fcard'+(it.type==='photo'?' photo':''); c.style.width=c.style.height=fl.size+'px';
+    c.style.marginLeft=c.style.marginTop=(-fl.size/2)+'px';
+    c.innerHTML=`<div class="art">${it.type==='model'?'🧊':''}</div>${it.archived?'<span class="tag">📦 収蔵中</span>':''}<div class="dim"></div>`;
+    c.dataset.i=i; c.loaded=false; box.appendChild(c); fl.cards.push(c);
+  });
+  let start=0; if(prevId){ const k=fl.items.findIndex(x=>x.id===prevId); if(k>=0) start=k; }
+  fl.pos=Math.min(start, fl.items.length-1); fl.target=null; fl.vel=0;
+  $('flowScrub').max=fl.items.length-1; $('flowCount').textContent=fl.items.length;
+  layoutFlow(); flowInfo();
+}
+function layoutFlow(){
+  const S=fl.size;
+  fl.cards.forEach((c,i)=>{
+    const d=i-fl.pos, a=Math.abs(d), sg=Math.sign(d), m=Math.min(a,1);
+    if(a>9){ c.style.display='none'; return; } c.style.display='';
+    const x=sg*(m*S*.62 + Math.max(a-1,0)*S*.24), z=-m*S*.75, ry=-sg*m*68;
+    c.style.transform=`translateX(${x}px) translateZ(${z}px) rotateY(${ry}deg)`;
+    c.style.zIndex=String(1000-Math.round(a*10));
+    c.querySelector('.dim').style.opacity=Math.min(.55, a*.18).toFixed(3);
+    if(!c.loaded && a<7){ c.loaded=true; const it=fl.items[i];
+      thumbUrl(it).then(u=>{ if(!u) return; const im=new Image(); im.alt=''; im.src=u; const art=c.querySelector('.art'); art.textContent=''; art.appendChild(im); }).catch(()=>{}); }
+  });
+  const k=Math.round(fl.pos); $('flowScrub').value=k; $('flowPos').textContent=k+1;
+}
+function flowInfo(){
+  const it=fl.items[Math.round(fl.pos)]; if(!it){ $('flowInfo').innerHTML=''; return; }
+  const meta=[it.author?'作：'+esc(it.author):'', esc(fmtDate(it.date)||''), it.type==='book'?'📚 '+esc(it.category||'本棚'):(TYPE_LABEL[it.type]||'')].filter(Boolean).join('・');
+  let st=''; if(canFilter()) st = it.archived ? '📦 収蔵庫にしまってあります' : (myShare()&&it.shared!==false ? '🖼 展示中・👪 家族の美術館に出品中' : '🖼 部屋に展示中');
+  else if(it.ownerName) st=`${esc(it.ownerName)}さんの作品`;
+  $('flowInfo').innerHTML=`<b>${esc(it.title||'無題')}</b><div class="fm">${meta}</div>${st?`<span class="fs">${st}</span>`:''}`;
+}
+let flowLastIdx=-1;
+function flowTick(){
+  fl.raf=0; const n=fl.items.length; if(!n || !flowOpen()) return;
+  if(fl.drag) return;
+  if(fl.target!==null){ const d=fl.target-fl.pos; fl.pos+=d*.16; if(Math.abs(d)<.002){ fl.pos=fl.target; fl.target=null; } }
+  else if(Math.abs(fl.vel)>.002){ fl.pos+=fl.vel; fl.vel*=.92; if(fl.pos<0||fl.pos>n-1){ fl.vel*=.5; } if(Math.abs(fl.vel)<.02) { fl.target=Math.max(0,Math.min(n-1,Math.round(fl.pos))); fl.vel=0; } }
+  else { const t=Math.max(0,Math.min(n-1,Math.round(fl.pos))); if(Math.abs(t-fl.pos)>.001) fl.target=t; else { layoutFlow(); return; } }
+  layoutFlow(); const k=Math.round(fl.pos); if(k!==flowLastIdx){ flowLastIdx=k; flowInfo(); }
+  fl.raf=requestAnimationFrame(flowTick);
+}
+const flowKick=()=>{ if(!fl.raf) fl.raf=requestAnimationFrame(flowTick); };
+function flowGo(i){ fl.vel=0; fl.target=Math.max(0,Math.min(fl.items.length-1,i)); flowKick(); }
+(()=>{
+  const box=$('flow');
+  box.onpointerdown=e=>{ try{box.setPointerCapture(e.pointerId);}catch(_){} fl.drag={x:e.clientX, pos:fl.pos, moved:false, hist:[[performance.now(),e.clientX]], card:e.target.closest('.fcard')}; fl.target=null; fl.vel=0; };
+  box.onpointermove=e=>{ const d=fl.drag; if(!d) return; const dx=e.clientX-d.x; if(Math.abs(dx)>6) d.moved=true;
+    const n=fl.items.length; let p=d.pos-dx/(fl.size*.42); if(p<0) p*=.35; if(p>n-1) p=n-1+(p-n+1)*.35; fl.pos=p;
+    d.hist.push([performance.now(),e.clientX]); if(d.hist.length>6) d.hist.shift();
+    layoutFlow(); const k=Math.round(fl.pos); if(k!==flowLastIdx){ flowLastIdx=k; flowInfo(); } };
+  box.onpointerup=box.onpointercancel=e=>{ const d=fl.drag; fl.drag=null; if(!d) return;
+    if(!d.moved){ if(d.card){ const i=+d.card.dataset.i; if(i===Math.round(fl.pos)) openViewer(fl.items[i]); else flowGo(i); } else flowKick(); return; }
+    const h=d.hist, a=h[0], b=h[h.length-1], dt=Math.max(16,b[0]-a[0]); const v=-(b[1]-a[1])/dt*16/(fl.size*.42);
+    fl.vel=Math.max(-.9,Math.min(.9,v)); flowKick(); };
+  box.addEventListener('wheel',e=>{ e.preventDefault(); fl.vel+= (e.deltaX||e.deltaY)/600; flowKick(); },{passive:false});
+  $('flowScrub').oninput=e=>{ fl.vel=0; fl.target=null; fl.pos=+e.target.value; layoutFlow(); flowInfo(); };
+  addEventListener('keydown',e=>{ if(!flowOpen()||$('viewSheet').classList.contains('show')) return; if(e.key==='ArrowRight') flowGo(Math.round(fl.pos)+1); if(e.key==='ArrowLeft') flowGo(Math.round(fl.pos)-1); });
+  addEventListener('resize',()=>{ if(flowOpen()) drawFlow(true); });
+})();
+$('openFlow').onclick=()=>{ show('flowSheet'); requestAnimationFrame(()=>drawFlow(false)); };
+$('flowClose').onclick=()=>{ show('flowSheet',false); if(listOpen()) drawList(); };
 $('listClose').onclick=()=>show('listSheet',false);
 $('sortNew').onclick=()=>{ listSort='new'; drawList(); };
 $('sortDate').onclick=()=>{ listSort='date'; drawList(); };
