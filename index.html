@@ -183,6 +183,13 @@
   .cmt .who b{color:var(--ink);font-size:12.5px}
   .cmt .del{margin-left:auto;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
   .cmt .txt{white-space:pre-wrap;word-break:break-word}
+  #vMemos{margin-top:6px}
+  .fmemo{background:#fffaf2;border:1px solid #efe4d3;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+  .fmemo .by{color:var(--muted);font-size:12.5px}
+  .fmemo .del{border:0;background:none;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;margin-left:6px}
+  #vMemoAdd{display:flex;gap:8px;align-items:flex-end;margin-top:4px}
+  #vMemoAdd textarea{flex:1;min-height:44px;height:44px}
+  #vMemoAdd button{flex:none;padding:10px 12px}
   .cempty{font-size:13px;color:var(--muted);padding:4px 0 8px}
   .crow{display:flex;gap:8px;margin-top:8px}
   .crow input{flex:1;min-width:0}
@@ -522,6 +529,8 @@
     <input type="date" id="vDate">
     <label for="vMemo">思い出メモ</label>
     <textarea id="vMemo" maxlength="300" placeholder="思い出を書きとめておけます"></textarea>
+    <div id="vMemos"></div>
+    <div id="vMemoAdd" style="display:none"><textarea id="vMemoIn" maxlength="200" placeholder="この作品の思い出を書き足す"></textarea><button class="btn primary" id="vMemoSend">書き足す</button></div>
     <div class="meta" id="vMeta"></div>
     <div class="meta" id="vOwner"></div>
     <button class="choice" id="vGo" style="display:none"><span class="ic">🚶</span><div><b>見に行く</b><span>この作品の前まで歩いていきます。</span></div></button>
@@ -738,7 +747,7 @@ function buildPublic(d){
     room:{ name:sh.roomName||'', members:(sh.members||[]).filter(x=>x!==sh.publicId) },
     items:d.items.filter(it=>it.shared!==false && !it.archived).map(it=>({ id:it.id, type:it.type, category:it.category, title:it.title||'', author:it.author||'', date:it.date||'', memo:it.memo||'', created:it.created,
       fileId:it.fileId, fileIds:it.fileIds, cutout:it.cutout, spinDir:it.spinDir, sharedAt:it.sharedAt })),
-    comments:(d.comments||[]).slice(-1000).map(c=>({ id:c.id, target:c.target, text:c.text, at:c.at, name:c.name||sh.name||'' })) };
+    comments:(d.comments||[]).slice(-1000).map(c=>({ id:c.id, target:c.target, text:c.text, at:c.at, name:c.name||sh.name||'', kind:c.kind||undefined })) };
 }
 // ログインなしで読む（APIキー）
 async function pfetch(id){
@@ -2026,6 +2035,8 @@ async function openViewer(item){
   const note=$('vNote'); note.style.display='none';
   $('vTitle').value=item.title||''; $('vMemo').value=item.memo||''; $('vDate').value=item.date||''; $('vAuthor').value=item.author||'';
   const readOnly = !!item.sample || !!item.pub;
+  if(item.pub && item.memo && item.ownerName) $('vMemo').value=`${item.memo}（${item.ownerName}）`;
+  $('vMemoIn').value='';
   $('vTitle').disabled=$('vMemo').disabled=$('vDate').disabled=$('vAuthor').disabled=readOnly;
   if(readOnly){ $('vAuthorChips').style.display='none'; } else drawAuthorChips('vAuthorChips','vAuthor');
   $('vOwner').textContent = item.ownerName ? `登録した人：${item.ownerName}` : '';
@@ -2407,7 +2418,9 @@ function commentTarget(item){
   if(item.pub) return item.id;                         // 家族の作品：「持ち主ID:作品ID」
   const sh=myShare(); return sh ? sh.publicId+':'+item.id : null;
 }
-function commentsFor(item){
+function commentsFor(item){ return notesFor(item).filter(c=>c.kind!=='memo'); }
+function memosFor(item){ return notesFor(item).filter(c=>c.kind==='memo'); }
+function notesFor(item){
   const t=commentTarget(item); if(!t) return [];
   const mine=(!viewOnly && remote.comments) ? remote.comments.map(c=>({ ...c, mine:true })) : [];
   const others = viewOnly ? viewComments : roomComments;
@@ -2422,7 +2435,17 @@ function commentsVisible(item){
   if(!myShare()) return false;
   return !!item.pub || item.shared!==false;
 }
+function drawMemos(item){
+  const box=$('vMemos'), list=commentsVisible(item) ? memosFor(item) : [];
+  box.innerHTML='';
+  list.forEach(c=>{ const d=document.createElement('div'); d.className='fmemo';
+    d.innerHTML=`${esc(c.text)}<span class="by">（${esc(c.name||'家族')}）</span>${c.mine?'<button class="del">消す</button>':''}`;
+    if(c.mine) d.querySelector('.del').onclick=()=>{ if(confirm('この思い出メモを消しますか？')) deleteComment(c.id, item); };
+    box.appendChild(d); });
+  $('vMemoAdd').style.display = (!viewOnly && item.pub && commentsVisible(item)) ? 'flex' : 'none';
+}
 function drawComments(item){
+  drawMemos(item);
   const box=$('vComments');
   if(!commentsVisible(item)){ box.style.display='none'; return; }
   box.style.display='';
@@ -2452,6 +2475,16 @@ $('cSend').onclick=async()=>{
   try{ remote=await drive.mutate(d=>{ d.comments=(d.comments||[]).concat([c]); }); saveLocalIndex(); $('cInput').value=''; drawComments(item); if(listOpen()) drawList(); }
   catch(e){ if(e instanceof AuthError) needAuth(); toast('コメントを送れませんでした'); }
   finally{ $('cSend').disabled=false; }
+};
+$('vMemoSend').onclick=async()=>{
+  const item=latest(current); if(!item) return;
+  const text=$('vMemoIn').value.trim(); if(!text) return;
+  if(!auth.valid){ needAuth(); toast('Googleにつなぎ直してから、もう一度お試しください',3600); return; }
+  const c={ id:uid(), kind:'memo', target:commentTarget(item), text, at:Date.now(), name:myShare().name||'' };
+  $('vMemoSend').disabled=true;
+  try{ remote=await drive.mutate(d=>{ d.comments=(d.comments||[]).concat([c]); }); saveLocalIndex(); $('vMemoIn').value=''; drawComments(item); toast('思い出メモを書き足しました'); }
+  catch(e){ if(e instanceof AuthError) needAuth(); toast('書き足せませんでした'); }
+  finally{ $('vMemoSend').disabled=false; }
 };
 $('cInput').addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing){ e.preventDefault(); $('cSend').click(); } });
 async function deleteComment(id, item){
